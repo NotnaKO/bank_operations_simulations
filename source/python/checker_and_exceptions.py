@@ -1,12 +1,9 @@
-class UserNotExists(Exception):
-    pass
-
-
-class UserAlreadyExists(Exception):
-    pass
+from source.python.data_adapter import DataAdapter
 
 
 class Checker:
+    _adapter = DataAdapter()
+
     @classmethod
     def check_if_user_exists(cls, name: str, surname: str):
-        pass  # Todo: сделать, когда будет запись в файл
+        cls._adapter.get_client(name, surname)

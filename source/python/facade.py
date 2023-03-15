@@ -3,10 +3,11 @@ from dataclasses import dataclass
 from logging import log, INFO, WARNING
 from typing import TextIO, AnyStr
 
-from source.python.checker_and_exceptions import Checker, UserNotExists, UserAlreadyExists
+from source.python.checker_and_exceptions import Checker
 from source.python.clients.client import Client
 from source.python.clients.client_builders import BaseClientBuilder, FullClientBuilder, \
     ClientWithAddressBuilder, ClientWithPassportBuilder
+from source.python.data_adapter import DataAdapter, UserNotExists, UserAlreadyExists
 
 
 @dataclass
@@ -19,7 +20,7 @@ class Assistant:
 
     def print(self, *args: AnyStr):
         """Print lines in the output"""
-        self._output.writelines(args)
+        print(*args, file=self._output)
 
     def input(self) -> AnyStr:
         """Read one line from the input"""
@@ -29,12 +30,19 @@ class Assistant:
         self.print("""\t\t\t\tWelcome to the bank system!\t\t\t\t""")
 
     def print_try_again(self):
-        self.print("Error, please check your answer and try again.\n")
+        self.print("Error, please check your answer and try again.")
 
     def learn_about_user(self):
-        pass
+        self.print("Let's try to sign up:\nEnter your name and surname separated by a space:")
+        name, surname = self.input().split()
+        self.print("Enter your address(optional, press Enter to continue without address)")
+        address = self.input()
+        self.print("Enter your passport(optional, press Enter to continue without passport)")
+        passport = self.input()
+        self._user_data = list(filter(lambda x: x, (name, surname, address, passport)))
+        self._with_passport = bool(passport)
 
-    def generate_user(self):
+    def generate_client(self):
         assert self._user_data and len(self._user_data) >= 2
         match len(self._user_data):
             case 2:
@@ -50,13 +58,12 @@ class Assistant:
         try:
             Checker.check_if_user_exists(new_client.name, new_client.surname)
         except UserNotExists:
-            pass
-            # Todo: запись клиента
+            return new_client
         else:
             raise UserAlreadyExists
 
     def login(self):
-        self.print("Введите свою имя и фамилию в строчку через пробел:\n")  # Todo: пароль?
+        self.print("Enter your name and surname:")  # Todo: пароль?
 
         answer = self.input().split()
         assert len(answer) == 2
@@ -67,14 +74,16 @@ class Assistant:
 class SessionFacade:
     """Session moderator"""
 
-    def __init__(self, _input: TextIO = sys.stdin, _output: TextIO = sys.stdout):
+    def __init__(self, _input: TextIO = sys.stdin,
+                 _output: TextIO = sys.stdout):
+        self._adapter = DataAdapter()
         self._assistant = Assistant(_input, _output)
 
     def sign_up_or_sign_in(self):
         self._assistant.print(
             """ Please, sign up or sign in(now and later choose the number to answer):
 1)sign up
-2)sign in\n""")
+2)sign in""")
         answer = self._assistant.input()
         while answer != '1' and answer != '2':
             self._assistant.print_try_again()
@@ -96,7 +105,7 @@ class SessionFacade:
         while not success:
             self._assistant.learn_about_user()
             try:
-                self._assistant.generate_user()
+                new_client = self._assistant.generate_client()
             except AssertionError:
                 self._assistant.print_try_again()
                 log(WARNING, "Wrong user data in sign up")
@@ -105,6 +114,7 @@ class SessionFacade:
                 log(WARNING, "Sign up to user already exist")
             else:
                 success = True
+                self._adapter.create_new_client(new_client)
         self._assistant.print("Sign up succeeded")
         log(INFO, "Sign up new user success")
         self.sign_in()
@@ -118,7 +128,7 @@ class SessionFacade:
             except AssertionError:
                 self._assistant.print("You name and surname should be only two words")
             except UserNotExists:
-                self._assistant.print("There are not users with such ")
+                self._assistant.print("There are not users with such name and surname")
             else:
                 success = True
             finally:

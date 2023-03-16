@@ -1,73 +1,10 @@
 import sys
 from dataclasses import dataclass
 from logging import log, INFO, WARNING
-from typing import TextIO, AnyStr
+from typing import TextIO
 
-from source.python.checker_and_exceptions import Checker
-from source.python.clients.client import Client
-from source.python.clients.client_builders import BaseClientBuilder, FullClientBuilder, \
-    ClientWithAddressBuilder, ClientWithPassportBuilder
+from source.python.assistants import SessionAssistant
 from source.python.data_adapter import DataAdapter, UserNotExists, UserAlreadyExists
-
-
-@dataclass
-class Assistant:
-    """Class helping with input and output"""
-    _input: TextIO
-    _output: TextIO
-    _user_data: list = None
-    _with_passport: bool = None
-
-    def print(self, *args: AnyStr):
-        """Print lines in the output"""
-        print(*args, file=self._output)
-
-    def input(self) -> AnyStr:
-        """Read one line from the input"""
-        return self._input.readline().rstrip()
-
-    def print_welcome(self):
-        self.print("""\t\t\t\tWelcome to the bank system!\t\t\t\t""")
-
-    def print_try_again(self):
-        self.print("Error, please check your answer and try again.")
-
-    def learn_about_user(self):
-        self.print("Let's try to sign up:\nEnter your name and surname separated by a space:")
-        name, surname = self.input().split()
-        self.print("Enter your address(optional, press Enter to continue without address)")
-        address = self.input()
-        self.print("Enter your passport(optional, press Enter to continue without passport)")
-        passport = self.input()
-        self._user_data = list(filter(lambda x: x, (name, surname, address, passport)))
-        self._with_passport = bool(passport)
-
-    def generate_client(self):
-        assert self._user_data and len(self._user_data) >= 2
-        match len(self._user_data):
-            case 2:
-                builder = BaseClientBuilder()
-            case 4:
-                builder = FullClientBuilder()
-            case _:
-                if not self._with_passport:
-                    builder = ClientWithAddressBuilder()
-                else:
-                    builder = ClientWithPassportBuilder()
-        new_client: Client = builder.build(self._user_data)
-        try:
-            Checker.check_if_user_exists(new_client.name, new_client.surname)
-        except UserNotExists:
-            return new_client
-        else:
-            raise UserAlreadyExists
-
-    def login(self):
-        self.print("Enter your name and surname:")  # Todo: пароль?
-
-        answer = self.input().split()
-        assert len(answer) == 2
-        Checker.check_if_user_exists(*answer)
 
 
 @dataclass
@@ -76,8 +13,8 @@ class SessionFacade:
 
     def __init__(self, _input: TextIO = sys.stdin,
                  _output: TextIO = sys.stdout):
-        self._adapter = DataAdapter()
-        self._assistant = Assistant(_input, _output)
+        self._adapter: DataAdapter = DataAdapter()
+        self._assistant: SessionAssistant = SessionAssistant(_input, _output)
 
     def sign_up_or_sign_in(self):
         self._assistant.print(
@@ -135,6 +72,7 @@ class SessionFacade:
                 if not success:
                     self.sign_up_or_sign_in()
                 else:
+                    log(INFO, "Sign in success")
                     self.main()
 
     def main(self):

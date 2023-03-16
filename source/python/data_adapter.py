@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
+from typing import Type
 
+from source.python.accounts.accounts import Account
 from source.python.clients.client import Client
 
 
@@ -16,11 +18,10 @@ class DataAlreadyLoaded(Exception):
     pass
 
 
-class ClientEncoder(json.JSONEncoder):
+class Encoder(json.JSONEncoder):
     def default(self, o: Client):
-        if isinstance(o, Client):
-            return {"name": o.name, "surname": o.surname, "address": o.address,
-                    "passport": o.passport}
+        if isinstance(o, Client) or isinstance(o, Account):
+            return o.get_data()
         super().default(o)
 
 
@@ -43,10 +44,11 @@ class DataAdapter(metaclass=Singleton):
         with open(self.file_name) as f:
             self._data = json.load(f)
         self._file = open(self.file_name, "w")
+        self.encoder: Type[json.JSONEncoder] = Encoder
 
     def __del__(self):
         json.dump(self._data, self._file,
-                  cls=ClientEncoder)  # encoding Client to json object with ClientEncoder
+                  cls=self.encoder)  # encoding Client to json object with Encoder
         self._file.close()
 
     def client_exists(self, name: str, surname: str) -> bool:

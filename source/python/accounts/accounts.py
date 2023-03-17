@@ -32,6 +32,10 @@ class Commission(ABC):
     def get_data(self):
         pass
 
+    @abstractmethod
+    def __str__(self):
+        pass
+
 
 @dataclass
 class PercentCommission(Commission):
@@ -45,6 +49,9 @@ class PercentCommission(Commission):
     def get_data(self):
         return {"type": "percent", "value": self.percent}
 
+    def __str__(self):
+        return f"commission with percent {self.percent}"
+
 
 @dataclass(init=False)
 class FixedCommission(Commission):
@@ -56,6 +63,9 @@ class FixedCommission(Commission):
 
     def get_data(self):
         return {"type": "fixed", "value": self.commission}
+
+    def __str__(self):
+        return f"fixed commission {self.commission}"
 
 
 class Account(ABC):
@@ -91,6 +101,10 @@ class Account(ABC):
     def get_data(self) -> dict:
         pass
 
+    @abstractmethod
+    def __str__(self):
+        pass
+
 
 class Debit(Account):
     def withdraw(self, summa: float):
@@ -103,6 +117,9 @@ class Debit(Account):
 
     def get_data(self) -> dict:
         return {"type": "Debit", "balance": self.balance, "end": self.end}
+
+    def __str__(self):
+        return f"Debit with balance {self.balance} and end {self.end}"
 
 
 class Deposit(Account):
@@ -119,6 +136,9 @@ class Deposit(Account):
     def get_data(self) -> dict:
         return {"type": "Deposit", "balance": self.balance, "end": self.end}
 
+    def __str__(self):
+        return f"Deposit with balance {self.balance} and end {self.end}"
+
 
 class Credit(Account):
     def __init__(self, begin_balance: float, end: date, commission: Commission):
@@ -126,7 +146,7 @@ class Credit(Account):
         super().__init__(begin_balance, end)
 
     @property
-    def commission(self):
+    def commission(self) -> Commission:
         return self._commission
 
     def withdraw(self, summa: float):
@@ -140,3 +160,7 @@ class Credit(Account):
     def get_data(self) -> dict:
         return {"type": "credit", "balance": self.balance, "end": self.end,
                 "commission": self.commission.get_data()}
+
+    def __str__(self):
+        return \
+            f"Credit with balance {self.balance}, end {self.end} and {self.commission}"

@@ -2,16 +2,13 @@ from dataclasses import dataclass
 from typing import Type
 
 from source.python.accounts.accounts import Account
-from source.python.clients.reliability import NotReliable, Reliable
+from source.python.clients.reliability import NotReliable, Reliable, ReliabilityType
 
 
 @dataclass(init=False)
 class Client:
-    _name: str
-    _surname: str
-    _accounts: list[Account]
-    _address: str | None = None
-    _passport: str | None = None
+    type: ReliabilityType
+    accounts: list[Account]
 
     def __init__(self, name: str, surname: str, address: str, passport: str):
         self._name = name
@@ -52,3 +49,6 @@ class Client:
 
     def add_account(self, acc: Account):
         self.accounts.append(acc)
+
+    def have_accounts(self) -> bool:
+        return bool(self.accounts)

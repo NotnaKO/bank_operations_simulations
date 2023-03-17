@@ -13,7 +13,13 @@
       "address": "a",
       "passport": "aa",
       "accounts": []
+    },
+    "t a": {
+      "name": "t",
+      "surname": "a",
+      "address": "a",
+      "passport": "a",
+      "accounts": []
     }
-  },
-  "accounts": {}
+  }
 }

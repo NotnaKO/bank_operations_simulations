@@ -5,7 +5,8 @@ from typing import TextIO
 
 from source.python.accounts.accounts_factory import DebitCreator, DepositCreator, CreditCreator
 from source.python.data_adapter import DataAdapter
-from source.python.session.assistants import AuthAssistant, MainAssistant, AccountsAssistant
+from source.python.session.assistants import AuthAssistant, MainAssistant, AccountsAssistant, \
+    TransactionAssistant
 
 
 @dataclass
@@ -18,6 +19,7 @@ class SessionFacade:
         self._auth_assistant: AuthAssistant = AuthAssistant(_input, _output, adapter)
         self._main_assistant: MainAssistant = MainAssistant(_input, _output)
         self._account_assistant: AccountsAssistant = AccountsAssistant(_input, _output)
+        self._transaction_assistant: TransactionAssistant = TransactionAssistant(_input, _output)
 
     def sign_up_or_sign_in(self):
         self._auth_assistant.print_choice()
@@ -49,7 +51,8 @@ class SessionFacade:
             self.sign_up_or_sign_in()
         else:
             log(INFO, "Sign in success")
-            self._main_assistant.client = self._adapter.get_client(answer[0], answer[1])
+            self._main_assistant.client = self._transaction_assistant.client \
+                = self._adapter.get_client(answer[0], answer[1])
             self.main()
 
     def main(self):
@@ -76,7 +79,16 @@ class SessionFacade:
                     log(INFO, f"Created {account}")
                     self._main_assistant.add_new_account(account)
                 case 3:
-                    pass  # todo: transactions
+                    transaction_type, account, summa = self._transaction_assistant.print_choice()
+                    match transaction_type:
+                        case 1:
+                            account.withdraw(summa)
+                        case 2:
+                            account.put(summa)
+                        case 3:
+                            second_account = self._transaction_assistant.account_choice()
+                            account.withdraw(summa)
+                            second_account.put(summa)
                 case 4:
                     log(INFO, "End of the work with client")
                     return

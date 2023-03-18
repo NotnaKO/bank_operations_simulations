@@ -172,7 +172,7 @@ class ClientIsNotSet(Exception):
 
 
 @dataclass(init=False)
-class MainAssistant(IOAssistant):
+class AssistantWithClient(IOAssistant):
     client: Client
 
     def __init__(self, _input: TextIO, _output: TextIO):
@@ -189,22 +189,32 @@ class MainAssistant(IOAssistant):
     def client(self, val):
         self._client = val
 
-    def print_choice(self) -> int:
-        q = "What do you want? View your accounts(1), created a new one(2)," \
-            + " make a transaction(3) or exit(4)?"
-        self.print(q)
+    def ask_code(self, max_code: int) -> int:
         success = False
         answer = None
         while not success:
             try:
                 answer = int(self.input())
+                if answer not in range(1, max_code + 1):
+                    raise ValueError
             except ValueError:
-                self.print("Your answer should be 1 or 2")
+                self.print(
+                    f"Your answer should be {', '.join(str(i) for i in range(1, max_code))}" +
+                    f" or {max_code}")
             else:
                 success = True
             finally:
                 if success:
                     return answer
+
+
+@dataclass
+class MainAssistant(AssistantWithClient):
+    def print_choice(self) -> int:
+        q = "What do you want? View your accounts(1), created a new one(2)," \
+            + " make a transaction(3) or exit(4)?"
+        self.print(q)
+        return self.ask_code(4)
 
     def show_accounts(self):
         if self.client.have_accounts():
@@ -219,20 +229,42 @@ class MainAssistant(IOAssistant):
 1) Debit
 2) Deposit
 3) Credit""")
-        success = False
-        answer = None
-        while not success:
-            try:
-                answer = int(self.input())
-                if answer not in (1, 2, 3):
-                    raise ValueError
-            except ValueError:
-                self.print("Your answer should be 1, 2 or 3")
-            else:
-                success = True
-            finally:
-                if success:
-                    return answer
+        return self.ask_code(3)
 
     def add_new_account(self, account: Account):
         self.client.add_account(account)
+
+
+class HaveNotAccountsYet(Exception):
+    pass
+
+
+@dataclass
+class TransactionAssistant(AssistantWithClient):
+    def account_choice(self) -> Account:
+        if not self.client.have_accounts():
+            self.print("You have not accounts yet")
+            raise HaveNotAccountsYet
+        self.print("Choose your account:")
+        for i in range(1, len(self.client.accounts) + 1):
+            self.print(f"{i}) {self.client.accounts[i - 1]}")
+        account = self.client.accounts[self.ask_code(len(self.client.accounts)) - 1]
+        return account
+
+    def print_choice(self) -> tuple[int, Account, float]:
+        account = self.account_choice()
+        self.print("What type of transaction you want: withdraw(1), put(2), transfer(3)?")
+        code = self.ask_code(3)
+        self.print("Enter the summa:")
+        success = False
+        summa = None
+        while not success:
+            try:
+                summa = float(self.input())
+                if not (summa * 100).is_integer():
+                    raise ValueError
+            except ValueError:
+                self.print("Wrong format of the summa")
+            else:
+                success = True
+        return code, account, summa

@@ -110,10 +110,10 @@ class Debit(Account):
     def withdraw(self, summa: float):
         if summa > self.balance:
             raise InsufficientFunds
-        self.balance -= summa
+        self.balance = round(self.balance - summa, 2)
 
     def put(self, summa: float):
-        self.balance += summa
+        self.balance = round(self.balance + summa, 2)
 
     def get_data(self) -> dict:
         return {"type": "Debit", "balance": self.balance, "end": self.end, "__Account__": True}
@@ -128,10 +128,10 @@ class Deposit(Account):
             raise WithdrawBeforeEnd
         if summa > self.balance:
             raise InsufficientFunds
-        self.balance -= summa
+        self.balance = round(self.balance - summa, 2)
 
     def put(self, summa: float):
-        self.balance += summa
+        self.balance = round(self.balance + summa, 2)
 
     def get_data(self) -> dict:
         return {"type": "Deposit", "balance": self.balance, "end": self.end, "__Account__": True}
@@ -152,10 +152,10 @@ class Credit(Account):
     def withdraw(self, summa: float):
         if self.balance < 0:
             summa = self.commission.apply(summa)
-        self.balance -= summa
+        self.balance = round(self.balance - summa, 2)
 
     def put(self, summa: float):
-        self.balance += summa
+        self.balance = round(self.balance + summa, 2)
 
     def get_data(self) -> dict:
         return {"type": "Credit", "balance": self.balance, "end": self.end,

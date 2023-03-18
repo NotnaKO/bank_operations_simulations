@@ -5,7 +5,7 @@
       "accounts": [
         {
           "__Account__": true,
-          "balance": 1000.45,
+          "balance": 0.45,
           "commission": {
             "__Commission__": true,
             "type": "percent",
@@ -16,6 +16,15 @@
             "value": "05.06.2024"
           },
           "type": "Credit"
+        },
+        {
+          "__Account__": true,
+          "balance": 2000.0,
+          "end": {
+            "__date__": true,
+            "value": "01.01.2024"
+          },
+          "type": "Debit"
         }
       ],
       "address": "a",

@@ -4,18 +4,18 @@ from logging import log, INFO
 from typing import TextIO
 
 from source.python.accounts.accounts_factory import DebitCreator, DepositCreator, CreditCreator
-from source.python.assistants import AuthAssistant, MainAssistant, AccountsAssistant
 from source.python.data_adapter import DataAdapter
+from source.session.assistants import AuthAssistant, MainAssistant, AccountsAssistant
 
 
 @dataclass
 class SessionFacade:
     """Session moderator"""
 
-    def __init__(self, _input: TextIO = sys.stdin,
+    def __init__(self, adapter: DataAdapter, _input: TextIO = sys.stdin,
                  _output: TextIO = sys.stdout):
-        self._adapter: DataAdapter = DataAdapter()
-        self._auth_assistant: AuthAssistant = AuthAssistant(_input, _output)
+        self._adapter: DataAdapter = adapter
+        self._auth_assistant: AuthAssistant = AuthAssistant(_input, _output, adapter)
         self._main_assistant: MainAssistant = MainAssistant(_input, _output)
         self._account_assistant: AccountsAssistant = AccountsAssistant(_input, _output)
 
@@ -39,7 +39,7 @@ class SessionFacade:
     def sign_up(self):
         log(INFO, "Starting sign up")
         self._adapter.create_new_client(self._auth_assistant.sign_up())
-        log(INFO, "Sign up new user success")
+        log(INFO, "Sign up new client success")
         self.sign_in()
 
     def sign_in(self):
@@ -54,22 +54,29 @@ class SessionFacade:
 
     def main(self):
         log(INFO, "Main part starts")
-        choice = self._main_assistant.print_choice()
-        if choice == 1:
-            log(INFO, "Showing accounts of the client")
-            self._main_assistant.show_accounts()
-        else:
-            log(INFO, "Creating new account")
-            account_type = self._main_assistant.choice_type_of_account()
-            account_creator = None
-            match account_type:
+        while True:
+            choice = self._main_assistant.print_choice()
+            match choice:
                 case 1:
-                    account_creator = DebitCreator(self._account_assistant)
+                    log(INFO, "Showing accounts of the client")
+                    self._main_assistant.show_accounts()
                 case 2:
-                    account_creator = DepositCreator(self._account_assistant)
+                    log(INFO, "Creating new account")
+                    account_type = self._main_assistant.choice_type_of_account()
+                    account_creator = None
+                    match account_type:
+                        case 1:
+                            account_creator = DebitCreator(self._account_assistant)
+                        case 2:
+                            account_creator = DepositCreator(self._account_assistant)
+                        case 3:
+                            account_creator = CreditCreator(self._account_assistant)
+                    assert account_creator is not None
+                    account = account_creator.create_account()
+                    log(INFO, f"Created {account}")
+                    self._main_assistant.add_new_account(account)
                 case 3:
-                    account_creator = CreditCreator(self._account_assistant)
-            assert account_creator is not None
-            account = account_creator.create_account()
-            log(INFO, f"Created {account}")
-            self._main_assistant.add_new_account(account)
+                    pass  # todo: transactions
+                case 4:
+                    log(INFO, "End of the work with client")
+                    return

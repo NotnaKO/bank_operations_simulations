@@ -1,25 +1,27 @@
 {
   "clients": {
     "a b": {
+      "__Client__": true,
+      "accounts": [
+        {
+          "__Account__": true,
+          "balance": 1000.45,
+          "commission": {
+            "__Commission__": true,
+            "type": "percent",
+            "value": 5.0
+          },
+          "end": {
+            "__date__": true,
+            "value": "05.06.2024"
+          },
+          "type": "Credit"
+        }
+      ],
+      "address": "a",
       "name": "a",
-      "surname": "b",
-      "address": "ad",
-      "passport": "pas",
-      "accounts": []
-    },
-    "b a": {
-      "name": "b",
-      "surname": "a",
-      "address": "a",
-      "passport": "aa",
-      "accounts": []
-    },
-    "t a": {
-      "name": "t",
-      "surname": "a",
-      "address": "a",
       "passport": "a",
-      "accounts": []
+      "surname": "b"
     }
   }
 }

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from source.python.accounts.accounts import Debit, Account, Deposit, Credit
-from source.python.assistants import AccountsAssistant
+from source.session.assistants import AccountsAssistant
 
 
 @dataclass

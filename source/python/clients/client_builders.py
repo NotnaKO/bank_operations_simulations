@@ -21,7 +21,7 @@ class ClientBuilder(ABC):
 
     @abstractmethod
     def set_passport(self, content: list):
-        """Set password for the client"""
+        """Set passport for the client"""
         pass
 
     @abstractmethod

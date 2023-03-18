@@ -3,12 +3,13 @@ from dataclasses import dataclass
 from logging import log, WARNING
 from typing import TextIO
 
-from source.python.accounts.accounts import Commission, WrongSummaFormat, Account
-from source.python.checker_and_exceptions import Checker
+from source.python.accounts.accounts import Commission, WrongSummaFormat, Account, \
+    FixedCommission, PercentCommission
+from source.python.checker import Checker
 from source.python.clients.client import Client
 from source.python.clients.client_builders import BaseClientBuilder, FullClientBuilder, \
     ClientWithAddressBuilder, ClientWithPassportBuilder
-from source.python.data_adapter import UserNotExists, UserAlreadyExists
+from source.python.data_adapter import UserNotExists, UserAlreadyExists, DataAdapter
 
 
 @dataclass
@@ -25,12 +26,18 @@ class IOAssistant:
         return self._input.readline().rstrip()
 
 
-@dataclass
+@dataclass(init=False)
 class AuthAssistant(IOAssistant):
     """Class helping with authentication"""
+    _checker: Checker
+    _user_data: list | None = None
+    _with_passport: bool | None = None
 
-    _user_data: list = None
-    _with_passport: bool = None
+    def __init__(self, input_: TextIO, output: TextIO, adapter: DataAdapter):
+        super().__init__(input_, output)
+        self._checker = Checker(adapter)
+        self._user_data = None
+        self._with_passport = None
 
     def print_welcome(self):
         self.print("""\t\t\t\tWelcome to the bank system!\t\t\t\t""")
@@ -68,7 +75,7 @@ class AuthAssistant(IOAssistant):
                     builder = ClientWithPassportBuilder()
         new_client: Client = builder.build(self._user_data)
         try:
-            Checker.check_if_user_exists(new_client.name, new_client.surname)
+            self._checker.check_if_user_exists(new_client.name, new_client.surname)
         except UserNotExists:
             return new_client
         else:
@@ -80,7 +87,7 @@ class AuthAssistant(IOAssistant):
         answer = self.input().split()
         try:
             assert len(answer) == 2
-            Checker.check_if_user_exists(*answer)
+            self._checker.check_if_user_exists(*answer)
         except AssertionError:
             self.print("You name and surname should be only two words")
             log(WARNING, f"Attempt to sign in with incorrect name and surname: {' '.join(answer)}")
@@ -91,6 +98,7 @@ class AuthAssistant(IOAssistant):
             success = True
         finally:
             if success:
+                self.print("Sign in success")
                 return answer[0], answer[1]
 
     def sign_up(self) -> Client:
@@ -132,10 +140,31 @@ class AccountsAssistant(IOAssistant):
         return money
 
     def get_end_of_period(self) -> datetime.date:
-        pass
+        success = False
+        end = None
+        while not success:
+            self.print("Enter the end of the period of account in format DD.MM.YYYY:")
+            try:
+                end = datetime.datetime.strptime(self.input(), "%d.%m.%Y")
+            except ValueError:
+                self.print("Your end of the account should be in format DD.MM.YYYY")
+            else:
+                success = True
+        return end
 
     def get_commission(self) -> Commission:
-        pass
+        while True:
+            self.print("Choose the type of the commission: fixed(1) or percent(2)")
+            try:
+                answer = int(self.input())
+                if answer == 1:
+                    self.print("Enter the value:")
+                    return FixedCommission(int(self.input()))
+                else:
+                    self.print("Enter the percent:")
+                    return PercentCommission(float(self.input()))
+            except ValueError:
+                self.print("Your answer should be an integer or a float(in percent commission)")
 
 
 class ClientIsNotSet(Exception):
@@ -161,7 +190,9 @@ class MainAssistant(IOAssistant):
         self._client = val
 
     def print_choice(self) -> int:
-        self.print("What do you want? View your accounts(1) or created a new one(2)?")
+        q = "What do you want? View your accounts(1), created a new one(2)," \
+            + " make a transaction(3) or exit(4)?"
+        self.print(q)
         success = False
         answer = None
         while not success:

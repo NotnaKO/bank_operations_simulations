@@ -1,9 +1,11 @@
 import logging
 
-from source.python.facade import SessionFacade
+from source.python.data_adapter import DataAdapter
+from source.session.facade import SessionFacade
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, filename="py_log.log", filemode="w",
+    logging.basicConfig(level=logging.INFO, filename="py_log.log", filemode="a",
                         encoding='utf-8', format="%(levelname)s %(message)s")
-    facade = SessionFacade()
-    facade.start_session()
+    with DataAdapter() as adapter:
+        facade = SessionFacade(adapter)
+        facade.start_session()

@@ -10,12 +10,16 @@ class Client:
     type: ReliabilityType
     accounts: list[Account]
 
-    def __init__(self, name: str, surname: str, address: str, passport: str):
+    def __init__(self, name: str, surname: str, address: str, passport: str,
+                 accounts: list[Account] | None = None):
         self._name = name
         self._surname = surname
         self._address = address
         self._passport = passport
-        self._accounts = []
+        if accounts is None:
+            self._accounts: list[Account] = []
+        else:
+            self._accounts = accounts
 
     @property
     def name(self) -> str:
@@ -31,7 +35,7 @@ class Client:
 
     @property
     def passport(self) -> str:
-        return self._passport  # Todo: is it ok?
+        return self._passport  # TODO: is it ok?
 
     @property
     def type(self) -> Type[NotReliable | Reliable]:
@@ -45,7 +49,7 @@ class Client:
 
     def get_data(self) -> dict:
         return {"name": self.name, "surname": self.surname, "address": self.address,
-                "passport": self.passport, "accounts": self.accounts}
+                "passport": self.passport, "accounts": self.accounts, "__Client__": True}
 
     def add_account(self, acc: Account):
         self.accounts.append(acc)

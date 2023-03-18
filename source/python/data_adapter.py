@@ -1,8 +1,11 @@
+import datetime
 import json
+from dataclasses import dataclass
+from logging import log, INFO
 from pathlib import Path
-from typing import Type
 
-from source.python.accounts.accounts import Account
+from source.python.accounts.accounts import Account, Debit, Deposit, Credit, FixedCommission, \
+    PercentCommission, Commission
 from source.python.clients.client import Client
 
 
@@ -20,8 +23,10 @@ class DataAlreadyLoaded(Exception):
 
 class Encoder(json.JSONEncoder):
     def default(self, o: Client):
-        if isinstance(o, Client) or isinstance(o, Account):
+        if isinstance(o, Client) or isinstance(o, Account) or isinstance(o, Commission):
             return o.get_data()
+        if isinstance(o, datetime.date):
+            return {"value": o.strftime("%d.%m.%Y"), "__date__": True}
         super().default(o)
 
 
@@ -31,25 +36,55 @@ class Singleton(type):
     def __call__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super(Singleton, cls).__call__(*args, **kwargs)
+        else:
+            raise DataAlreadyLoaded
         return cls._instance
 
 
+@dataclass(init=False)
 class DataAdapter(metaclass=Singleton):
     """Class to adapt work with data"""
+
+    @staticmethod
+    def loading_function(d: dict):
+        if "__Client__" in d:
+            return Client(d["name"], d["surname"], d["address"], d["passport"], d["accounts"])
+        if "__date__" in d:
+            return datetime.datetime.strptime(d["value"], "%d.%m.%Y")
+        if "__Account__" in d:
+            match d["type"]:
+                case "Debit":
+                    return Debit(d["balance"], d["end"])
+                case "Deposit":
+                    return Deposit(d["balance"], d["end"])
+                case "Credit":
+                    return Credit(d["balance"], d["end"], d["commission"])
+        if "__Commission__" in d:
+            match d["type"]:
+                case "percent":
+                    return PercentCommission(d["value"])
+                case "fixed":
+                    return FixedCommission(d["value"])
+        return d
 
     def __init__(self,
                  file_name: str | Path = Path(__file__).parents[2].joinpath("data/data.json")):
         self.file_name: Path | str = file_name
         self._data: dict | None = None
-        with open(self.file_name) as f:
-            self._data = json.load(f)
-        self._file = open(self.file_name, "w")
-        self.encoder: Type[json.JSONEncoder] = Encoder
 
-    def __del__(self):
-        json.dump(self._data, self._file,
-                  cls=self.encoder)  # encoding Client to json object with Encoder
-        self._file.close()
+    def __enter__(self):
+        with open(self.file_name) as f:
+            self._data = json.load(f, object_hook=self.loading_function)
+        log(INFO, "Data loaded")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        with open(self.file_name, "w") as file:
+            json.dump(self._data, file, indent=2, sort_keys=True,
+                      cls=Encoder)  # encoding Client to json object with Encoder
+        log(INFO, "Data saved")
+        if exc_val:
+            raise
 
     def client_exists(self, name: str, surname: str) -> bool:
         """Check if client exists"""

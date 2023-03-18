@@ -47,7 +47,7 @@ class PercentCommission(Commission):
         return round(summa / 100, 2)
 
     def get_data(self):
-        return {"type": "percent", "value": self.percent}
+        return {"type": "percent", "value": self.percent, "__Commission__": True}
 
     def __str__(self):
         return f"commission with percent {self.percent}"
@@ -62,13 +62,13 @@ class FixedCommission(Commission):
         return convert(summa) - self.commission
 
     def get_data(self):
-        return {"type": "fixed", "value": self.commission}
+        return {"type": "fixed", "value": self.commission, "__Commission__": True}
 
     def __str__(self):
         return f"fixed commission {self.commission}"
 
 
-class Account(ABC):
+class Account:
     """Accounts base class(not pure abstract)"""
 
     def __init__(self, begin_balance: float, end):
@@ -116,10 +116,10 @@ class Debit(Account):
         self.balance += summa
 
     def get_data(self) -> dict:
-        return {"type": "Debit", "balance": self.balance, "end": self.end}
+        return {"type": "Debit", "balance": self.balance, "end": self.end, "__Account__": True}
 
     def __str__(self):
-        return f"Debit with balance {self.balance} and end {self.end}"
+        return f"Debit with balance {self.balance} and end {self.end.strftime('%d.%m.%Y')}"
 
 
 class Deposit(Account):
@@ -134,10 +134,10 @@ class Deposit(Account):
         self.balance += summa
 
     def get_data(self) -> dict:
-        return {"type": "Deposit", "balance": self.balance, "end": self.end}
+        return {"type": "Deposit", "balance": self.balance, "end": self.end, "__Account__": True}
 
     def __str__(self):
-        return f"Deposit with balance {self.balance} and end {self.end}"
+        return f"Deposit with balance {self.balance} and end {self.end.strftime('%d.%m.%Y')}"
 
 
 class Credit(Account):
@@ -158,9 +158,10 @@ class Credit(Account):
         self.balance += summa
 
     def get_data(self) -> dict:
-        return {"type": "credit", "balance": self.balance, "end": self.end,
-                "commission": self.commission.get_data()}
+        return {"type": "Credit", "balance": self.balance, "end": self.end,
+                "commission": self.commission.get_data(), "__Account__": True}
 
     def __str__(self):
-        return \
-            f"Credit with balance {self.balance}, end {self.end} and {self.commission}"
+        ans = f"Credit with balance {self.balance}," + \
+              f" end {self.end.strftime('%d.%m.%Y')} and {self.commission}"
+        return ans

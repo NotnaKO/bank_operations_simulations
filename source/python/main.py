@@ -1,7 +1,7 @@
 import logging
 
 from source.python.data_adapter import DataAdapter
-from source.session.facade import SessionFacade
+from source.python.session.facade import SessionFacade
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, filename="py_log.log", filemode="a",

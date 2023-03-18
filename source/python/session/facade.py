@@ -5,7 +5,7 @@ from typing import TextIO
 
 from source.python.accounts.accounts_factory import DebitCreator, DepositCreator, CreditCreator
 from source.python.data_adapter import DataAdapter
-from source.session.assistants import AuthAssistant, MainAssistant, AccountsAssistant
+from source.python.session.assistants import AuthAssistant, MainAssistant, AccountsAssistant
 
 
 @dataclass

@@ -1,6 +1,6 @@
 import logging
 
-from source.python.data_adapter import DataAdapter
+from source.python.data.data_adapter import DataAdapter
 from source.python.session.facade import SessionFacade
 
 if __name__ == '__main__':

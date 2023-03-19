@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from source.python.data_adapter import DataAdapter
+from source.python.data.data_adapter import DataAdapter
 
 
 @dataclass

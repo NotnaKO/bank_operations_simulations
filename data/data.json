@@ -1,4 +1,18 @@
 {
+  "banks": [
+    {
+      "__Bank__": true,
+      "name": "Tinkoff"
+    },
+    {
+      "__Bank__": true,
+      "name": "VTB"
+    },
+    {
+      "__Bank__": true,
+      "name": "Sberbank"
+    }
+  ],
   "clients": {
     "a b": {
       "__Client__": true,
@@ -6,6 +20,7 @@
         {
           "__Account__": true,
           "balance": 0.45,
+          "bank_name": "Tinkoff",
           "commission": {
             "__Commission__": true,
             "type": "percent",
@@ -19,12 +34,23 @@
         },
         {
           "__Account__": true,
-          "balance": 2000.0,
+          "balance": 1900.0,
+          "bank_name": "VTB",
           "end": {
             "__date__": true,
             "value": "01.01.2024"
           },
           "type": "Debit"
+        },
+        {
+          "__Account__": true,
+          "balance": 100.0,
+          "bank_name": "Tinkoff",
+          "end": {
+            "__date__": true,
+            "value": "01.02.2003"
+          },
+          "type": "Deposit"
         }
       ],
       "address": "a",

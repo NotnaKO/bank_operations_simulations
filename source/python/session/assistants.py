@@ -5,11 +5,12 @@ from typing import TextIO
 
 from source.python.accounts.accounts import Commission, WrongSummaFormat, Account, \
     FixedCommission, PercentCommission
+from source.python.accounts.banks import Bank
 from source.python.checker import Checker
 from source.python.clients.client import Client
 from source.python.clients.client_builders import BaseClientBuilder, FullClientBuilder, \
     ClientWithAddressBuilder, ClientWithPassportBuilder
-from source.python.data_adapter import UserNotExists, UserAlreadyExists, DataAdapter
+from source.python.data.data_adapter import UserNotExists, UserAlreadyExists, DataAdapter
 
 
 @dataclass
@@ -24,6 +25,24 @@ class IOAssistant:
     def input(self) -> str:
         """Read one line from the input"""
         return self._input.readline().rstrip()
+
+    def ask_code(self, max_code: int) -> int:
+        success = False
+        answer = None
+        while not success:
+            try:
+                answer = int(self.input())
+                if answer not in range(1, max_code + 1):
+                    raise ValueError
+            except ValueError:
+                self.print(
+                    f"Your answer should be {', '.join(str(i) for i in range(1, max_code))}" +
+                    f" or {max_code}")
+            else:
+                success = True
+            finally:
+                if success:
+                    return answer
 
 
 @dataclass(init=False)
@@ -166,6 +185,13 @@ class AccountsAssistant(IOAssistant):
             except ValueError:
                 self.print("Your answer should be an integer or a float(in percent commission)")
 
+    def get_bank(self, banks: list[Bank]) -> Bank:
+        self.print("Choose the bank to your account:")
+        for i in range(1, len(banks) + 1):
+            self.print(f"{i}) {banks[i - 1]}")
+        code = self.ask_code(len(banks)) - 1
+        return banks[code]
+
 
 class ClientIsNotSet(Exception):
     pass
@@ -189,23 +215,6 @@ class AssistantWithClient(IOAssistant):
     def client(self, val):
         self._client = val
 
-    def ask_code(self, max_code: int) -> int:
-        success = False
-        answer = None
-        while not success:
-            try:
-                answer = int(self.input())
-                if answer not in range(1, max_code + 1):
-                    raise ValueError
-            except ValueError:
-                self.print(
-                    f"Your answer should be {', '.join(str(i) for i in range(1, max_code))}" +
-                    f" or {max_code}")
-            else:
-                success = True
-            finally:
-                if success:
-                    return answer
 
 
 @dataclass
@@ -233,6 +242,9 @@ class MainAssistant(AssistantWithClient):
 
     def add_new_account(self, account: Account):
         self.client.add_account(account)
+
+    def print_bye(self):
+        self.print("Good bye!")
 
 
 class HaveNotAccountsYet(Exception):
@@ -268,3 +280,6 @@ class TransactionAssistant(AssistantWithClient):
             else:
                 success = True
         return code, account, summa
+
+    def print_success(self):
+        self.print("Transaction succeeded")

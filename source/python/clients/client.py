@@ -3,10 +3,11 @@ from typing import Type
 
 from source.python.accounts.accounts import Account
 from source.python.clients.reliability import NotReliable, Reliable, ReliabilityType
+from source.python.data.serializable_base_class import SerializableByMyEncoder
 
 
 @dataclass(init=False)
-class Client:
+class Client(SerializableByMyEncoder):
     type: ReliabilityType
     accounts: list[Account]
 

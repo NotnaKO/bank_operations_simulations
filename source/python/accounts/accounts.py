@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from source.python.data.serializable_base_class import SerializableByMyEncoder
+
 
 class WrongSummaFormat(Exception):
     pass
@@ -22,7 +24,7 @@ def convert(summa: float) -> int:
     return int(summa * 100)
 
 
-class Commission(ABC):
+class Commission(SerializableByMyEncoder, ABC):
     @abstractmethod
     def apply(self, summa: float) -> float:
         """Applying commission"""
@@ -68,13 +70,14 @@ class FixedCommission(Commission):
         return f"fixed commission {self.commission}"
 
 
-class Account:
-    """Accounts base class(not pure abstract)"""
+class Account(SerializableByMyEncoder):
+    """Accounts base class"""
 
-    def __init__(self, begin_balance: float, end):
+    def __init__(self, begin_balance: float, end, bank_name: str):
         """Taking money with float but convert it to int"""
         self.balance = begin_balance
         self._end = end
+        self._bank_name = bank_name
 
     @property
     def balance(self) -> float:
@@ -89,21 +92,22 @@ class Account:
     def end(self) -> date:
         return self._end
 
-    @abstractmethod
+    @property
+    def bank_name(self):
+        return self._bank_name
+
+    @bank_name.setter
+    def bank_name(self, val: str):
+        self._bank_name = val
+
     def withdraw(self, summa: float):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def put(self, summa: float):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def get_data(self) -> dict:
-        pass
-
-    @abstractmethod
-    def __str__(self):
-        pass
+        raise NotImplementedError
 
 
 class Debit(Account):
@@ -116,10 +120,12 @@ class Debit(Account):
         self.balance = round(self.balance + summa, 2)
 
     def get_data(self) -> dict:
-        return {"type": "Debit", "balance": self.balance, "end": self.end, "__Account__": True}
+        return {"type": "Debit", "balance": self.balance, "end": self.end, "__Account__": True,
+                "bank_name": self.bank_name}
 
     def __str__(self):
-        return f"Debit with balance {self.balance} and end {self.end.strftime('%d.%m.%Y')}"
+        return f"Debit from {self.bank_name} with balance {self.balance}" + \
+            f" and end {self.end.strftime('%d.%m.%Y')}"
 
 
 class Deposit(Account):
@@ -134,16 +140,18 @@ class Deposit(Account):
         self.balance = round(self.balance + summa, 2)
 
     def get_data(self) -> dict:
-        return {"type": "Deposit", "balance": self.balance, "end": self.end, "__Account__": True}
+        return {"type": "Deposit", "balance": self.balance, "end": self.end, "__Account__": True,
+                "bank_name": self.bank_name}
 
     def __str__(self):
-        return f"Deposit with balance {self.balance} and end {self.end.strftime('%d.%m.%Y')}"
+        return f"Deposit from {self.bank_name} with balance {self.balance}" + \
+            f" and end {self.end.strftime('%d.%m.%Y')}"
 
 
 class Credit(Account):
-    def __init__(self, begin_balance: float, end: date, commission: Commission):
+    def __init__(self, begin_balance: float, end: date, commission: Commission, bank_name: str):
         self._commission: Commission = commission
-        super().__init__(begin_balance, end)
+        super().__init__(begin_balance, end, bank_name)
 
     @property
     def commission(self) -> Commission:
@@ -159,9 +167,10 @@ class Credit(Account):
 
     def get_data(self) -> dict:
         return {"type": "Credit", "balance": self.balance, "end": self.end,
-                "commission": self.commission.get_data(), "__Account__": True}
+                "commission": self.commission.get_data(), "__Account__": True,
+                "bank_name": self.bank_name}
 
     def __str__(self):
-        ans = f"Credit with balance {self.balance}," + \
+        ans = f"Credit from {self.bank_name} with balance {self.balance}," + \
               f" end {self.end.strftime('%d.%m.%Y')} and {self.commission}"
         return ans

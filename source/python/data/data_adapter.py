@@ -4,9 +4,11 @@ from dataclasses import dataclass
 from logging import log, INFO
 from pathlib import Path
 
-from source.python.accounts.accounts import Account, Debit, Deposit, Credit, FixedCommission, \
-    PercentCommission, Commission
+from source.python.accounts.accounts import Debit, Deposit, Credit, FixedCommission, \
+    PercentCommission
+from source.python.accounts.banks import Bank
 from source.python.clients.client import Client
+from source.python.data.serializable_base_class import SerializableByMyEncoder
 
 
 class UserNotExists(Exception):
@@ -23,7 +25,7 @@ class DataAlreadyLoaded(Exception):
 
 class Encoder(json.JSONEncoder):
     def default(self, o: Client):
-        if isinstance(o, Client) or isinstance(o, Account) or isinstance(o, Commission):
+        if isinstance(o, SerializableByMyEncoder):
             return o.get_data()
         if isinstance(o, datetime.date):
             return {"value": o.strftime("%d.%m.%Y"), "__date__": True}
@@ -54,21 +56,23 @@ class DataAdapter(metaclass=Singleton):
         if "__Account__" in d:
             match d["type"]:
                 case "Debit":
-                    return Debit(d["balance"], d["end"])
+                    return Debit(d["balance"], d["end"], d["bank_name"])
                 case "Deposit":
-                    return Deposit(d["balance"], d["end"])
+                    return Deposit(d["balance"], d["end"], d["bank_name"])
                 case "Credit":
-                    return Credit(d["balance"], d["end"], d["commission"])
+                    return Credit(d["balance"], d["end"], d["commission"], d["bank_name"])
         if "__Commission__" in d:
             match d["type"]:
                 case "percent":
                     return PercentCommission(d["value"])
                 case "fixed":
                     return FixedCommission(d["value"])
+        if "__Bank__" in d:
+            return Bank(d["name"])
         return d
 
     def __init__(self,
-                 file_name: str | Path = Path(__file__).parents[2].joinpath("data/data.json")):
+                 file_name: str | Path = Path(__file__).parents[3].joinpath("data/data.json")):
         self.file_name: Path | str = file_name
         self._data: dict | None = None
 
@@ -99,3 +103,6 @@ class DataAdapter(metaclass=Singleton):
         if self.client_exists(name, surname):
             return self._data["clients"][f"{name} {surname}"]
         raise UserNotExists
+
+    def get_banks(self):
+        return self._data["banks"]

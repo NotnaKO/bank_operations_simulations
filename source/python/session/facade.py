@@ -4,7 +4,7 @@ from logging import log, INFO
 from typing import TextIO
 
 from source.python.accounts.accounts_factory import DebitCreator, DepositCreator, CreditCreator
-from source.python.data_adapter import DataAdapter
+from source.python.data.data_adapter import DataAdapter
 from source.python.session.assistants import AuthAssistant, MainAssistant, AccountsAssistant, \
     TransactionAssistant
 
@@ -75,7 +75,7 @@ class SessionFacade:
                         case 3:
                             account_creator = CreditCreator(self._account_assistant)
                     assert account_creator is not None
-                    account = account_creator.create_account()
+                    account = account_creator.create_account(self._adapter.get_banks())
                     log(INFO, f"Created {account}")
                     self._main_assistant.add_new_account(account)
                 case 3:
@@ -89,6 +89,9 @@ class SessionFacade:
                             second_account = self._transaction_assistant.account_choice()
                             account.withdraw(summa)
                             second_account.put(summa)
+                    self._transaction_assistant.print_success()
+                    log(INFO, "Transaction succeeded")
                 case 4:
+                    self._main_assistant.print_bye()
                     log(INFO, "End of the work with client")
                     return

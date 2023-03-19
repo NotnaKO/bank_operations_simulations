@@ -8,7 +8,6 @@ try:
     assert ver.major >= 3 and ver.minor >= 11
 except AssertionError:
     print("Нужно установить python версии не ниже 3.11")
-    raise
 print("Starting installing requirements")
 os.system("python.exe -m pip install --upgrade pip")
 os.system("pip install -r requirements.txt")

@@ -1,35 +1,35 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import date
 
-from src.python_code.accounts.accounts import Debit, Account, Deposit, Credit, Commission
+from src.python_code.accounts.accounts import Debit, Account, Deposit, Credit
+from src.python_code.accounts.banks import Bank
+from src.python_code.session.assistants import AccountsAssistant
 
 
 @dataclass
 class AccountCreator(ABC):
+    _assistant: AccountsAssistant
+
     @abstractmethod
-    def create_account(self, money: float, end: date,
-                       bank_name: str) -> Account:
-        pass
+    def create_account(self, banks: list[Bank]) -> Account:
+        return Account(self._assistant.get_money(), self._assistant.get_end_of_period(),
+                       self._assistant.get_bank(banks).name)
 
 
 class DebitCreator(AccountCreator):
-    def create_account(self, money: float, end: date,
-                       bank_name: str) -> Debit:
-        return Debit(money, end, bank_name)
+    def create_account(self, banks: list[Bank]) -> Debit:
+        base_account = super().create_account(banks)
+        return Debit(base_account.balance, base_account.end, base_account.bank_name)
 
 
 class DepositCreator(AccountCreator):
-    def create_account(self, money: float, end: date,
-                       bank_name: str) -> Deposit:
-        return Deposit(money, end, bank_name)
+    def create_account(self, banks: list[Bank]) -> Deposit:
+        base_account = super().create_account(banks)
+        return Deposit(base_account.balance, base_account.end, base_account.bank_name)
 
 
-@dataclass
 class CreditCreator(AccountCreator):
-    commission: Commission
-
-    def create_account(self, money: float, end: date,
-                       bank_name: str) -> Credit:
-        return Credit(money, end, self.commission,
-                      bank_name)
+    def create_account(self, banks: list[Bank]) -> Credit:
+        base_account = super().create_account(banks)
+        return Credit(base_account.balance, base_account.end, self._assistant.get_commission(),
+                      base_account.bank_name)

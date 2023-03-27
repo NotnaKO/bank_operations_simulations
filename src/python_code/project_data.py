@@ -4,7 +4,7 @@ from pathlib import Path
 class ProjectData:
     @staticmethod
     def project_path() -> Path:
-        return Path(__file__).parents[2]
+        return Path(__file__).parents[3]
 
     @staticmethod
     def data_path() -> Path:

@@ -14,6 +14,69 @@
     }
   ],
   "clients": {
+    "And qwerty": {
+      "__Client__": true,
+      "accounts": [
+        {
+          "__Account__": true,
+          "balance": 10013091.0,
+          "bank_name": "VTB",
+          "end": {
+            "__date__": true,
+            "value": "19.03.2023"
+          },
+          "type": "Debit"
+        },
+        {
+          "__Account__": true,
+          "balance": 5.0,
+          "bank_name": "Sberbank",
+          "commission": {
+            "__Commission__": true,
+            "type": "percent",
+            "value": 90.0
+          },
+          "end": {
+            "__date__": true,
+            "value": "12.12.2012"
+          },
+          "type": "Credit"
+        }
+      ],
+      "address": "208 mak",
+      "name": "And",
+      "passport": "208 832457812345",
+      "surname": "qwerty"
+    },
+    "a a": {
+      "__Client__": true,
+      "accounts": [
+        {
+          "__Account__": true,
+          "balance": 500.0,
+          "bank_name": "VTB",
+          "end": {
+            "__date__": true,
+            "value": "04.05.2023"
+          },
+          "type": "Debit"
+        },
+        {
+          "__Account__": true,
+          "balance": 1100.0,
+          "bank_name": "Tinkoff",
+          "end": {
+            "__date__": true,
+            "value": "03.06.2022"
+          },
+          "type": "Deposit"
+        }
+      ],
+      "address": "ad",
+      "name": "a",
+      "passport": "pas",
+      "surname": "a"
+    },
     "a b": {
       "__Client__": true,
       "accounts": [
@@ -56,6 +119,14 @@
       "address": "a",
       "name": "a",
       "passport": "a",
+      "surname": "b"
+    },
+    "b b": {
+      "__Client__": true,
+      "accounts": [],
+      "address": "ad",
+      "name": "b",
+      "passport": "pas",
       "surname": "b"
     }
   }

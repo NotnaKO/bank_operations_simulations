@@ -1,25 +1,23 @@
-import sys
 from dataclasses import dataclass
 from logging import log, INFO
-from typing import TextIO
 
-from src.python_code.accounts.accounts_factory import DebitCreator, DepositCreator, CreditCreator
+from src.python_code.accounts.codes_to_answers import ActionsCodes
 from src.python_code.data.data_adapter import DataAdapter
 from src.python_code.session.assistants import AuthAssistant, MainAssistant, AccountsAssistant, \
     TransactionAssistant
+from src.python_code.session.io_implementation import IOImplementation, StandardConsoleIO
 
 
 @dataclass
 class SessionFacade:
     """Session moderator"""
 
-    def __init__(self, adapter: DataAdapter, _input: TextIO = sys.stdin,
-                 _output: TextIO = sys.stdout):
+    def __init__(self, adapter: DataAdapter, io: IOImplementation = StandardConsoleIO()):
         self._adapter: DataAdapter = adapter
-        self._auth_assistant: AuthAssistant = AuthAssistant(_input, _output, adapter)
-        self._main_assistant: MainAssistant = MainAssistant(_input, _output)
-        self._account_assistant: AccountsAssistant = AccountsAssistant(_input, _output)
-        self._transaction_assistant: TransactionAssistant = TransactionAssistant(_input, _output)
+        self._auth_assistant: AuthAssistant = AuthAssistant(io, adapter)
+        self._main_assistant: MainAssistant = MainAssistant(io)
+        self._account_assistant: AccountsAssistant = AccountsAssistant(io)
+        self._transaction_assistant: TransactionAssistant = TransactionAssistant(io)
 
     def sign_up_or_sign_in(self):
         self._auth_assistant.print_choice()
@@ -51,7 +49,7 @@ class SessionFacade:
             self.sign_up_or_sign_in()
         else:
             log(INFO, "Sign in success")
-            self._main_assistant.client = self._transaction_assistant.client \
+            self._account_assistant.client = self._transaction_assistant.client \
                 = self._adapter.get_client(answer[0], answer[1])
             self.main()
 
@@ -60,38 +58,26 @@ class SessionFacade:
         while True:
             choice = self._main_assistant.print_choice()
             match choice:
-                case 1:
+                case ActionsCodes.SHOW_ACCOUNTS:
                     log(INFO, "Showing accounts of the client")
-                    self._main_assistant.show_accounts()
-                case 2:
+                    self._account_assistant.show_accounts()
+                case ActionsCodes.CREATE_NEW_ACCOUNT:
                     log(INFO, "Creating new account")
-                    account_type = self._main_assistant.choice_type_of_account()
-                    account_creator = None
-                    match account_type:
-                        case 1:
-                            account_creator = DebitCreator(self._account_assistant)
-                        case 2:
-                            account_creator = DepositCreator(self._account_assistant)
-                        case 3:
-                            account_creator = CreditCreator(self._account_assistant)
-                    assert account_creator is not None
-                    account = account_creator.create_account(self._adapter.get_banks())
+                    account_type = self._account_assistant.choice_type_of_account()
+                    account_creator = self._account_assistant.get_creator(account_type)
+                    account = account_creator. \
+                        create_account(self._account_assistant.get_money(),
+                                       self._account_assistant.get_end_of_period(),
+                                       self._account_assistant.get_bank(
+                                           self._adapter.get_banks()).name)
                     log(INFO, f"Created {account}")
-                    self._main_assistant.add_new_account(account)
-                case 3:
+                    self._account_assistant.add_new_account(account)
+                case ActionsCodes.MAKE_TRANSACTION:
                     transaction_type, account, summa = self._transaction_assistant.print_choice()
-                    match transaction_type:
-                        case 1:
-                            account.withdraw(summa)
-                        case 2:
-                            account.put(summa)
-                        case 3:
-                            second_account = self._transaction_assistant.account_choice()
-                            account.withdraw(summa)
-                            second_account.put(summa)
+                    self._transaction_assistant.choice_operation(transaction_type, account, summa)
                     self._transaction_assistant.print_success()
                     log(INFO, "Transaction succeeded")
-                case 4:
+                case ActionsCodes.EXIT:
                     self._main_assistant.print_bye()
                     log(INFO, "End of the work with client")
                     return

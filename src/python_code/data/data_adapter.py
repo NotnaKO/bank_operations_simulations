@@ -4,11 +4,12 @@ from dataclasses import dataclass
 from logging import log, INFO
 from pathlib import Path
 
-from src.python_code.accounts.accounts import Debit, Deposit, Credit, FixedCommission, \
-    PercentCommission
+from src.python_code.accounts.accounts import Debit, Deposit, Credit
 from src.python_code.accounts.banks import Bank
+from src.python_code.accounts.commissions import FixedCommission, PercentCommission
 from src.python_code.clients.client import Client
 from src.python_code.data.serializable_base_class import SerializableByMyEncoder
+from src.python_code.project_data import ProjectData
 
 
 class UserNotExists(Exception):
@@ -32,21 +33,7 @@ class Encoder(json.JSONEncoder):
         super().default(o)
 
 
-class Singleton(type):
-    _instance = None
-
-    def __call__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(Singleton, cls).__call__(*args, **kwargs)
-        else:
-            raise DataAlreadyLoaded
-        return cls._instance
-
-
-@dataclass(init=False)
-class DataAdapter(metaclass=Singleton):
-    """Class to adapt work with data"""
-
+class Decoder(json.JSONDecoder):
     @staticmethod
     def loading_function(d: dict):
         if "__Client__" in d:
@@ -71,14 +58,34 @@ class DataAdapter(metaclass=Singleton):
             return Bank(d["name"])
         return d
 
+    def __init__(self, *args, **kwargs):
+        kwargs["object_hook"] = self.loading_function
+        super().__init__(*args, **kwargs)
+
+
+class Singleton(type):
+    _instance = None
+
+    def __call__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(Singleton, cls).__call__(*args, **kwargs)
+        else:
+            raise DataAlreadyLoaded
+        return cls._instance
+
+
+@dataclass(init=False)
+class DataAdapter(metaclass=Singleton):
+    """Class to adapt work with data"""
+
     def __init__(self,
-                 file_name: str | Path = Path(__file__).parents[3].joinpath("data/data.json")):
+                 file_name: str | Path = ProjectData.data_path()):
         self.file_name: Path | str = file_name
         self._data: dict | None = None
 
     def __enter__(self):
         with open(self.file_name) as f:
-            self._data = json.load(f, object_hook=self.loading_function)
+            self._data = json.load(f, cls=Decoder)
         log(INFO, "Data loaded")
         return self
 

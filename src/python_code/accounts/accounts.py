@@ -1,12 +1,8 @@
-from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from src.python_code.accounts.commissions import convert, Commission
 from src.python_code.data.serializable_base_class import SerializableByMyEncoder
-
-
-class WrongSummaFormat(Exception):
-    pass
 
 
 class InsufficientFunds(Exception):
@@ -15,59 +11,6 @@ class InsufficientFunds(Exception):
 
 class WithdrawBeforeEnd(Exception):
     pass
-
-
-def convert(summa: float) -> int:
-    """convert float summa to int"""
-    if not (summa * 100).is_integer():
-        raise WrongSummaFormat
-    return int(summa * 100)
-
-
-class Commission(SerializableByMyEncoder):
-    @abstractmethod
-    def apply(self, summa: float) -> float:
-        """Applying commission"""
-        pass
-
-    @abstractmethod
-    def get_data(self):
-        pass
-
-    @abstractmethod
-    def __str__(self):
-        pass
-
-
-@dataclass
-class PercentCommission(Commission):
-    percent: float
-
-    def apply(self, summa: float) -> float:
-        summa = convert(summa)
-        summa *= self.percent
-        return round(summa / 100, 2)
-
-    def get_data(self):
-        return {"type": "percent", "value": self.percent, "__Commission__": True}
-
-    def __str__(self):
-        return f"commission with percent {self.percent}"
-
-
-@dataclass(init=False)
-class FixedCommission(Commission):
-    def __init__(self, commission: float):
-        self.commission: int = convert(commission)
-
-    def apply(self, summa: float) -> float:
-        return convert(summa) - self.commission
-
-    def get_data(self):
-        return {"type": "fixed", "value": self.commission, "__Commission__": True}
-
-    def __str__(self):
-        return f"fixed commission {self.commission}"
 
 
 class Account(SerializableByMyEncoder):
@@ -110,6 +53,7 @@ class Account(SerializableByMyEncoder):
         raise NotImplementedError
 
 
+@dataclass(init=False)
 class Debit(Account):
     def withdraw(self, summa: float):
         if summa > self.balance:
@@ -128,6 +72,7 @@ class Debit(Account):
             f" and end {self.end.strftime('%d.%m.%Y')}"
 
 
+@dataclass(init=False)
 class Deposit(Account):
     def withdraw(self, summa: float):
         if datetime.today() < self.end:
@@ -148,6 +93,7 @@ class Deposit(Account):
             f" and end {self.end.strftime('%d.%m.%Y')}"
 
 
+@dataclass(init=False)
 class Credit(Account):
     def __init__(self, begin_balance: float, end: date, commission: Commission, bank_name: str):
         self._commission: Commission = commission

@@ -6,25 +6,39 @@ class SpacesInPathWithPyreverse(Exception):
     pass
 
 
+def check_dependencies(lis: list, name, name_with_replace):
+    j = 0
+    while j < len(lis):
+        if name_with_replace in lis[j] and name not in lis[j] and "--" in lis[j]:
+            rep = lis[j].replace(name_with_replace, name)
+            print(f"Replaced {lis[j].rstrip()} to {rep.rstrip()}")
+            lis[j] = rep
+        else:
+            j += 1
+    success = False
+    while not success:
+        for i in range(len(lis)):
+            if "--" in lis[i] and lis.count(lis[i]) > 1:
+                print(f"Remove duplicate {lis[i]}")
+                del lis[i]
+                break
+        else:
+            success = True
+
+
 def parse(dir_: str):
+    print("Removing from", dir_)
     with open("classes.puml") as f:
         lis = f.readlines()
     success = False
     while not success:
         try:
             for i in range(len(lis)):
-                old_len = len(lis)
                 if dir_ in lis[i] and lis[i].startswith("class "):
                     name = lis[i][lis[i].index(dir_):lis[i].index(" #")]
                     name_with_replace = name.replace(dir_, '')
-                    j = 0
-                    while j < len(lis):
-                        if name_with_replace in lis[j] and name not in lis[j] and "--" in lis[j]:
-                            print(f"Deleted {lis[j].rstrip()}")
-                            del lis[j]
-                        else:
-                            j += 1
-                    assert old_len == len(lis)
+                    check_dependencies(lis, name, name_with_replace)
+
                     with_rep = lis[i].replace(dir_, '')
                     with_rep = with_rep[:with_rep.index('#')]
                     for first in range(len(lis)):
@@ -59,6 +73,7 @@ def make_uml():
                         ex.__class__.__name__) + ': ' + str(ex.__str__())
                     sp_index = s.rfind(' ')
                     note = ' ' * sp_index + '^'
+                    # noinspection PyUnresolvedReferences
                     ex.add_note(note)
                     raise ex
                 f.append(full)
@@ -66,10 +81,10 @@ def make_uml():
     os.remove("packages.puml")
     print("Starting removing duplicates")
     parse("src.python_code.")
-    parse("src.python_code.data.")
-    parse("src.python_code.clients.")
-    parse("src.python_code.accounts.")
-    parse("src.python_code.session.")
+    for root, a, filenames in os.walk(path_with_code):
+        for i in a:
+            if "__" not in i:
+                parse("src.python_code." + i.replace('\\', '.') + '.')
     print("UML complete")
 
 

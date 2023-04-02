@@ -1,30 +1,34 @@
 import datetime
 from dataclasses import dataclass
 from logging import log, WARNING
-from typing import TextIO
 
-from src.python_code.accounts.accounts import Commission, WrongSummaFormat, Account, \
-    FixedCommission, PercentCommission
+from src.python_code.accounts.account_operations import Operator
+from src.python_code.accounts.accounts import Commission, Account
+from src.python_code.accounts.accounts_factory import AccountCreator, DebitCreator, \
+    DepositCreator, CreditCreator
 from src.python_code.accounts.banks import Bank
+from src.python_code.accounts.codes_to_answers import AccountCodes, TransactionCodes
+from src.python_code.accounts.commissions import WrongSummaFormat, FixedCommission, \
+    PercentCommission
 from src.python_code.checker import Checker
 from src.python_code.clients.client import Client
 from src.python_code.clients.client_builders import BaseClientBuilder, FullClientBuilder, \
     ClientWithAddressBuilder, ClientWithPassportBuilder
 from src.python_code.data.data_adapter import UserNotExists, UserAlreadyExists, DataAdapter
+from src.python_code.session.io_implementation import IOImplementation
 
 
 @dataclass
 class IOAssistant:
-    _input: TextIO
-    _output: TextIO
+    io_implementation: IOImplementation
 
     def print(self, *args):
         """Print lines in the output"""
-        print(*args, file=self._output)
+        self.io_implementation.write(*args)
 
     def input(self) -> str:
         """Read one line from the input"""
-        return self._input.readline().rstrip()
+        return self.io_implementation.read()
 
     def ask_code(self, max_code: int) -> int:
         success = False
@@ -52,8 +56,8 @@ class AuthAssistant(IOAssistant):
     _user_data: list | None = None
     _with_passport: bool | None = None
 
-    def __init__(self, input_: TextIO, output: TextIO, adapter: DataAdapter):
-        super().__init__(input_, output)
+    def __init__(self, io: IOImplementation, adapter: DataAdapter):
+        super().__init__(io)
         self._checker = Checker(adapter)
         self._user_data = None
         self._with_passport = None
@@ -124,12 +128,15 @@ class AuthAssistant(IOAssistant):
         success = False
         new_client = None
         while not success:
-            self.learn_about_user()
             try:
+                self.learn_about_user()
                 new_client = self.generate_client()
             except AssertionError:
                 self.print_try_again()
                 log(WARNING, "Wrong user data in sign up")
+            except ValueError:
+                self.print_try_again()
+                log(WARNING, "Not two words in name and surname")
             except UserAlreadyExists:
                 self.print_try_again()
                 log(WARNING, "Sign up to user already exist")
@@ -140,7 +147,26 @@ class AuthAssistant(IOAssistant):
         return new_client
 
 
-class AccountsAssistant(IOAssistant):
+@dataclass(init=False)
+class AssistantWithClient(IOAssistant):
+    client: Client
+
+    def __init__(self, io: IOImplementation):
+        super().__init__(io)
+        self.client = None
+
+    @property
+    def client(self) -> Client:
+        if self._client is None:
+            raise ClientIsNotSet
+        return self._client
+
+    @client.setter
+    def client(self, val):
+        self._client = val
+
+
+class AccountsAssistant(AssistantWithClient):
     def get_money(self) -> float:
         success = False
         money = None
@@ -192,37 +218,24 @@ class AccountsAssistant(IOAssistant):
         code = self.ask_code(len(banks)) - 1
         return banks[code]
 
+    def get_creator(self, account_type) -> AccountCreator:
+        account_creator = None
+        match account_type:
+            case AccountCodes.DEBIT:
+                account_creator = DebitCreator()
+            case AccountCodes.DEPOSIT:
+                account_creator = DepositCreator()
+            case AccountCodes.CREDIT:
+                account_creator = CreditCreator(self.get_commission())
+        assert account_creator is not None
+        return account_creator
 
-class ClientIsNotSet(Exception):
-    pass
-
-
-@dataclass(init=False)
-class AssistantWithClient(IOAssistant):
-    client: Client
-
-    def __init__(self, _input: TextIO, _output: TextIO):
-        super().__init__(_input, _output)
-        self.client = None
-
-    @property
-    def client(self) -> Client:
-        if self._client is None:
-            raise ClientIsNotSet
-        return self._client
-
-    @client.setter
-    def client(self, val):
-        self._client = val
-
-
-@dataclass
-class MainAssistant(AssistantWithClient):
-    def print_choice(self) -> int:
-        q = "What do you want? View your accounts(1), created a new one(2)," \
-            + " make a transaction(3) or exit(4)?"
-        self.print(q)
-        return self.ask_code(4)
+    def choice_type_of_account(self) -> int:
+        self.print("""Choose the type of the account:
+1) Debit
+2) Deposit
+3) Credit""")
+        return self.ask_code(3)
 
     def show_accounts(self):
         if self.client.have_accounts():
@@ -232,15 +245,21 @@ class MainAssistant(AssistantWithClient):
         else:
             self.print("You have not got accounts yet")
 
-    def choice_type_of_account(self) -> int:
-        self.print("""Choose the type of the account:
-1) Debit
-2) Deposit
-3) Credit""")
-        return self.ask_code(3)
-
     def add_new_account(self, account: Account):
         self.client.add_account(account)
+
+
+class ClientIsNotSet(Exception):
+    pass
+
+
+@dataclass
+class MainAssistant(IOAssistant):
+    def print_choice(self) -> int:
+        q = "What do you want? View your accounts(1), created a new one(2)," \
+            + " make a transaction(3) or exit(4)?"
+        self.print(q)
+        return self.ask_code(4)
 
     def print_bye(self):
         self.print("Good bye!")
@@ -252,6 +271,10 @@ class HaveNotAccountsYet(Exception):
 
 @dataclass
 class TransactionAssistant(AssistantWithClient):
+    def __init__(self, io: IOImplementation):
+        super().__init__(io)
+        self._operator = Operator()
+
     def account_choice(self) -> Account:
         if not self.client.have_accounts():
             self.print("You have not accounts yet")
@@ -282,3 +305,13 @@ class TransactionAssistant(AssistantWithClient):
 
     def print_success(self):
         self.print("Transaction succeeded")
+
+    def choice_operation(self, transaction_type: int, account: Account, summa: float):
+        match transaction_type:
+            case TransactionCodes.WITHDRAW:
+                self._operator.make_withdraw(account, summa)
+            case TransactionCodes.PUT:
+                self._operator.make_put(account, summa)
+            case TransactionCodes.TRANSFER:
+                second_account = self.account_choice()
+                self._operator.make_transfer(account, second_account, summa)

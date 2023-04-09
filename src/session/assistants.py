@@ -1,17 +1,15 @@
 import datetime
 from dataclasses import dataclass
-from logging import INFO, WARNING, log
-from textwrap import dedent
-from typing import Dict, List
+from logging import log, WARNING
 
-from src.accounts import Account, AccountCreator, Bank, CreditCreator, DebitCreator, \
-    DeclinedOperation, DepositCreator, FixedCommission, Money, Operator, PercentCommission, \
-    WrongSummaFormat
-from src.checker import Checker, InvalidTransfer
-from src.clients import BaseClientBuilder, Client, ClientWithAddressBuilder, \
-    ClientWithPassportBuilder, FullClientBuilder, NotReliable
-from src.data_adapter import DataAdapter, UserAlreadyExists, UserNotExists
-from .codes_to_answers import AccountCodes, ActionsCodes, TransactionCodes
+from src.accounts import Operator, WrongSummaFormat, Bank, AccountCreator, \
+    FixedCommission, PercentCommission, AccountCodes, DebitCreator, DepositCreator, CreditCreator, \
+    Account, TransactionCodes
+from src.checker import Checker
+from src.clients import BaseClientBuilder, FullClientBuilder, ClientWithAddressBuilder, \
+    ClientWithPassportBuilder, Client
+from src.data_adapter import DataAdapter, UserNotExists, \
+    UserAlreadyExists
 from .io_implementation import IOImplementation
 
 
@@ -28,7 +26,6 @@ class IOAssistant:
         return self.io_implementation.read()
 
     def ask_code(self, max_code: int) -> int:
-        """Ask code from 1 to max_code from user"""
         success = False
         answer = None
         while not success:
@@ -42,18 +39,16 @@ class IOAssistant:
                     f" or {max_code}")
             else:
                 success = True
-        return answer
-
-
-class LoginFail(Exception):
-    pass
+            finally:
+                if success:
+                    return answer
 
 
 @dataclass(init=False)
 class AuthAssistant(IOAssistant):
     """Class helping with authentication"""
     _checker: Checker
-    _user_data: List | None = None
+    _user_data: list | None = None
     _with_passport: bool | None = None
 
     def __init__(self, io: IOImplementation, adapter: DataAdapter):
@@ -65,22 +60,22 @@ class AuthAssistant(IOAssistant):
     def print_welcome(self):
         self.print("""\t\t\t\tWelcome to the bank system!\t\t\t\t""")
 
-    def sign_in_or_sign_up(self) -> int:
-        self.print(
-            """Please, sign up or sign in(now and later choose the number to answer):
-1) sign up
-2) sign in""")
-        codes = [ActionsCodes.SIGN_UP, ActionsCodes.SIGN_IN]
-        code = self.ask_code(2)
-        return codes[code - 1]
-
     def print_try_again(self):
         self.print("Error, please check your answer and try again.")
+
+    def print_choice(self):
+        self.print(
+            """ Please, sign up or sign in(now and later choose the number to answer):
+1)sign up
+2)sign in""")
 
     def learn_about_user(self):
         self.print("Let's try to sign up:\nEnter your name and surname separated by a space:")
         name, surname = self.input().split()
-        address, passport = self.complete_information()
+        self.print("Enter your address(optional, press Enter to continue without address)")
+        address = self.input()
+        self.print("Enter your passport(optional, press Enter to continue without passport)")
+        passport = self.input()
         self._user_data = list(filter(lambda x: x, (name, surname, address, passport)))
         self._with_passport = bool(passport)
 
@@ -98,18 +93,18 @@ class AuthAssistant(IOAssistant):
                     builder = ClientWithPassportBuilder()
         new_client: Client = builder.build(self._user_data)
         try:
-            self._checker.check_if_client_exists_by_client(new_client)
+            self._checker.check_if_user_exists(new_client.name, new_client.surname)
         except UserNotExists:
             return new_client
         raise UserAlreadyExists
 
-    def login(self) -> str | None:
+    def login(self) -> tuple[str, str] | None:
         success = False
-        self.print("Enter your name and surname:")
+        self.print("Enter your name and surname:")  # Todo: пароль?
         answer = self.input().split()
         try:
             assert len(answer) == 2
-            self._checker.check_if_client_exists_by_name(*answer)
+            self._checker.check_if_user_exists(*answer)
         except AssertionError:
             self.print("You name and surname should be only two words")
             log(WARNING, f"Attempt to sign in with incorrect name and surname: {' '.join(answer)}")
@@ -118,10 +113,10 @@ class AuthAssistant(IOAssistant):
             log(WARNING, f"There are not users with such name and surname: {' '.join(answer)}")
         else:
             success = True
-        if success:
-            self.print("Sign in success")
-            return answer[0] + ' ' + answer[1]
-        raise LoginFail
+        finally:
+            if success:
+                self.print("Sign in success")
+                return answer[0], answer[1]
 
     def sign_up(self) -> Client:
         success = False
@@ -131,28 +126,19 @@ class AuthAssistant(IOAssistant):
                 self.learn_about_user()
                 new_client = self.generate_client()
             except AssertionError:
-                self.print("You have made a mistake when enter name and surname")
-                log(WARNING, "Wrong user data in sign up")
+                self.print_try_again()
+                log(WARNING, "Wrong user work_with_data in sign up")
             except ValueError:
-                self.print("You should enter two words")
+                self.print_try_again()
                 log(WARNING, "Not two words in name and surname")
             except UserAlreadyExists:
-                self.print("Client with this name and surname already exists")
+                self.print_try_again()
                 log(WARNING, "Sign up to user already exist")
             else:
                 success = True
         assert new_client is not None
         self.print("Sign up succeeded")
         return new_client
-
-    def complete_information(self, client: Client = None):
-        self.print("Enter your address(optional, press Enter to continue without address)")
-        address = self.input().strip()
-        self.print("Enter your passport(optional, press Enter to continue without passport)")
-        passport = self.input().strip()
-        if client is not None:
-            client.complete(address, passport)
-        return address, passport
 
 
 @dataclass(init=False)
@@ -212,19 +198,18 @@ class AccountsAssistant(AssistantWithClient):
                 answer = int(self.input())
                 if answer == 1:
                     self.print("Enter the value:")
-                    return FixedCommission(Money(self.input()))
+                    return FixedCommission(int(self.input()))
                 self.print("Enter the percent:")
                 return PercentCommission(float(self.input()))
             except ValueError:
                 self.print("Your answer should be an integer or a float(in percent commission)")
 
-    def get_bank(self, banks: Dict[str, Bank]) -> Bank:
+    def get_bank(self, banks: list[Bank]) -> Bank:
         self.print("Choose the bank to your account:")
-        data = tuple(banks.keys())
-        for i in range(1, len(data) + 1):
-            self.print(f"{i}) {data[i - 1]}")
+        for i in range(1, len(banks) + 1):
+            self.print(f"{i}) {banks[i - 1]}")
         code = self.ask_code(len(banks)) - 1
-        return banks[data[code]]
+        return banks[code]
 
     def get_creator(self, account_type) -> AccountCreator:
         account_creator = None
@@ -248,8 +233,8 @@ class AccountsAssistant(AssistantWithClient):
     def show_accounts(self):
         if self.client.have_accounts():
             self.print("Your accounts:")
-            for account in self.client.accounts:
-                self.print(account)
+            for ac in self.client.accounts:
+                self.print(ac)
         else:
             self.print("You have not got accounts yet")
 
@@ -262,39 +247,12 @@ class ClientIsNotSet(Exception):
 
 
 @dataclass
-class MainAssistant(AssistantWithClient):
+class MainAssistant(IOAssistant):
     def print_choice(self) -> int:
-        question, codes = self.configure_choice()
-        self.print(question)
-        return codes[self.ask_code(len(codes) + 1) - 1]
-
-    def configure_choice(self) -> tuple[str, list[int]]:
-        """Configure user choice by type and accounts"""
-        if self.client is None:
-            raise ClientIsNotSet
-        variants: List[str] = []
-        answer = ""
-        codes: List[int] = []
-        if self.client.type is NotReliable:
-            answer += dedent(
-                f"""
-                Attention! You did not enter {self.client.information_to_add}. While you do
-                not complete information, you will have a bound by operation!\n""").lstrip()
-            variants.append("complete the information")
-            codes.append(ActionsCodes.COMPLETE_INFORMATION)
-        variants.append("create a new account")
-        codes.append(ActionsCodes.CREATE_NEW_ACCOUNT)
-        if self.client.accounts:
-            variants.extend(("view your accounts", "make a transaction"))
-            codes.extend((ActionsCodes.SHOW_ACCOUNTS, ActionsCodes.MAKE_TRANSACTION))
-        variants.append("exit")
-        codes.append(ActionsCodes.EXIT)
-        answer += "What do you want to do?\n"
-        last = f"{variants[-1]}({len(variants)})"
-        if len(variants) > 1:
-            answer += ", ".join(
-                f"{value}({i + 1})" for i, value in enumerate(variants[:-1])).capitalize()
-        return answer + " and " + last, codes
+        q = "What do you want? View your accounts(1), created a new one(2)," \
+            + " make a transaction(3) or exit(4)?"
+        self.print(q)
+        return self.ask_code(4)
 
     def print_bye(self):
         self.print("Good bye!")
@@ -306,10 +264,9 @@ class HaveNotAccountsYet(Exception):
 
 @dataclass
 class TransactionAssistant(AssistantWithClient):
-    def __init__(self, io: IOImplementation, adapter: DataAdapter):
+    def __init__(self, io: IOImplementation):
         super().__init__(io)
         self._operator = Operator()
-        self._checker = Checker(adapter)
 
     def account_choice(self) -> Account:
         if not self.client.have_accounts():
@@ -321,7 +278,7 @@ class TransactionAssistant(AssistantWithClient):
         account = self.client.accounts[self.ask_code(len(self.client.accounts)) - 1]
         return account
 
-    def print_choice(self) -> tuple[int, Account, Money]:
+    def print_choice(self) -> tuple[int, Account, float]:
         account = self.account_choice()
         self.print("What type of transaction you want: withdraw(1), put(2), transfer(3)?")
         code = self.ask_code(3)
@@ -330,7 +287,9 @@ class TransactionAssistant(AssistantWithClient):
         summa = None
         while not success:
             try:
-                summa = Money(self.input())
+                summa = float(self.input())
+                if not (summa * 100).is_integer():
+                    raise ValueError
             except ValueError:
                 self.print("Wrong format of the summa")
             else:
@@ -339,27 +298,13 @@ class TransactionAssistant(AssistantWithClient):
 
     def print_success(self):
         self.print("Transaction succeeded")
-        log(INFO, "Transaction succeeded")
 
-    def choice_operation(self, transaction_type: int, account: Account, summa: Money):
-        try:
-            match transaction_type:
-                case TransactionCodes.WITHDRAW:
-                    self._checker.approve_withdraw(self.client, account, summa)
-                    self._operator.make_withdraw(account, summa)
-                case TransactionCodes.PUT:
-                    self._operator.make_put(account, summa)
-                case TransactionCodes.TRANSFER:
-                    second_account = self.account_choice()
-                    self._checker.approve_transfer(self.client, account, second_account, summa)
-                    self._operator.make_transfer(account, second_account, summa)
-        except DeclinedOperation as exception:
-            self.print_decline(exception.args[0])
-        except InvalidTransfer as exception:
-            self.print_decline(exception.args[0])
-        else:
-            self.print_success()
-
-    def print_decline(self, message: str):
-        self.print(f"Your operation was declined: {message}")
-        log(WARNING, f"Operation declined with message: {message}")
+    def choice_operation(self, transaction_type: int, account: Account, summa: float):
+        match transaction_type:
+            case TransactionCodes.WITHDRAW:
+                self._operator.make_withdraw(account, summa)
+            case TransactionCodes.PUT:
+                self._operator.make_put(account, summa)
+            case TransactionCodes.TRANSFER:
+                second_account = self.account_choice()
+                self._operator.make_transfer(account, second_account, summa)

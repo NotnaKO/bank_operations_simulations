@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
 
-from src.accounts.accounts import Account, Commission, Credit, Debit, Deposit
+from src.accounts.accounts import Debit, Account, Deposit, Credit, Commission
 
 
 @dataclass

@@ -1,19 +1,16 @@
-from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from src.accounts.banks import DeclinedOperation
 from src.serializable_base_class import SerializableByMyEncoder
-from .commissions import Commission
-from .money import Money
+from .commissions import convert, Commission
 
 
-class InsufficientFunds(DeclinedOperation):
-    """Exception when insufficient funds in withdraw"""
+class InsufficientFunds(Exception):
+    pass
 
 
-class WithdrawBeforeEnd(DeclinedOperation):
-    """Exception when user trying to withdraw funds before the end of the deposit"""
+class WithdrawBeforeEnd(Exception):
+    pass
 
 
 class Account(SerializableByMyEncoder):
@@ -26,13 +23,13 @@ class Account(SerializableByMyEncoder):
         self._bank_name = bank_name
 
     @property
-    def balance(self) -> Money:
+    def balance(self) -> float:
         """Get balance of the account"""
-        return self._balance
+        return self._balance / 100
 
     @balance.setter
     def balance(self, summa: float):
-        self._balance = Money(summa)
+        self._balance = convert(summa)
 
     @property
     def end(self) -> date:
@@ -46,12 +43,10 @@ class Account(SerializableByMyEncoder):
     def bank_name(self, val: str):
         self._bank_name = val
 
-    @abstractmethod
-    def withdraw(self, summa: Money):
+    def withdraw(self, summa: float):
         raise NotImplementedError
 
-    @abstractmethod
-    def put(self, summa: Money):
+    def put(self, summa: float):
         raise NotImplementedError
 
     def get_data(self) -> dict:
@@ -60,15 +55,13 @@ class Account(SerializableByMyEncoder):
 
 @dataclass(init=False)
 class Debit(Account):
-    def withdraw(self, summa: Money):
+    def withdraw(self, summa: float):
         if summa > self.balance:
-            raise InsufficientFunds(
-                f"""You have tried to withdraw too much.
-You have: {self.balance}. You ask for: {summa}""")
-        self.balance -= summa
+            raise InsufficientFunds
+        self.balance = round(self.balance - summa, 2)
 
-    def put(self, summa: Money):
-        self.balance += summa
+    def put(self, summa: float):
+        self.balance = round(self.balance + summa, 2)
 
     def get_data(self) -> dict:
         return {"type": "Debit", "balance": self.balance, "end": self.end, "__Account__": True,
@@ -81,19 +74,15 @@ You have: {self.balance}. You ask for: {summa}""")
 
 @dataclass(init=False)
 class Deposit(Account):
-    def withdraw(self, summa: Money):
+    def withdraw(self, summa: float):
         if datetime.today() < self.end:
-            raise WithdrawBeforeEnd(f"""You have tried to withdraw too early.
-End of this deposit is {self.end.strftime("%d.%m.%Y")}.
-Today: {datetime.today().strftime("%d.%m.%Y")}""")
+            raise WithdrawBeforeEnd
         if summa > self.balance:
-            raise InsufficientFunds(
-                f"""You have tried to withdraw too much.
-You have: {self.balance}. You ask for: {summa}""")
-        self.balance -= summa
+            raise InsufficientFunds
+        self.balance = round(self.balance - summa, 2)
 
-    def put(self, summa: Money):
-        self.balance += summa
+    def put(self, summa: float):
+        self.balance = round(self.balance + summa, 2)
 
     def get_data(self) -> dict:
         return {"type": "Deposit", "balance": self.balance, "end": self.end, "__Account__": True,
@@ -114,13 +103,13 @@ class Credit(Account):
     def commission(self) -> Commission:
         return self._commission
 
-    def withdraw(self, summa: Money):
+    def withdraw(self, summa: float):
         if self.balance < 0:
             summa = self.commission.apply(summa)
-        self.balance -= summa
+        self.balance = round(self.balance - summa, 2)
 
-    def put(self, summa: Money):
-        self.balance += summa
+    def put(self, summa: float):
+        self.balance = round(self.balance + summa, 2)
 
     def get_data(self) -> dict:
         return {"type": "Credit", "balance": self.balance, "end": self.end,

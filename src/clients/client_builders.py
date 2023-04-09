@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 
 from src.clients.client import Client
 
@@ -11,19 +10,19 @@ class ClientBuilder(ABC):
         pass
 
     @abstractmethod
-    def set_name_and_surname(self, content: List):
+    def set_name_and_surname(self, content: list):
         """Set name and surname for the client"""
 
     @abstractmethod
-    def set_address(self, content: List):
+    def set_address(self, content: list):
         """Set address for the client"""
 
     @abstractmethod
-    def set_passport(self, content: List):
+    def set_passport(self, content: list):
         """Set passport for the client"""
 
     @abstractmethod
-    def build(self, content: List) -> Client:
+    def build(self, content: list) -> Client:
         """Build client"""
 
 
@@ -36,16 +35,16 @@ class BaseClientBuilder(ClientBuilder):
     def reset(self):
         self.content = []
 
-    def set_name_and_surname(self, content: List[str]):
-        self.content.append(content[0] + content[1])
+    def set_name_and_surname(self, content: list):
+        self.content.extend((content[0], content[1]))
 
-    def set_address(self, content: List):
+    def set_address(self, content: list):
         self.content.append(None)
 
-    def set_passport(self, content: List):
+    def set_passport(self, content: list):
         self.content.append(None)
 
-    def build(self, content: List) -> Client:
+    def build(self, content: list) -> Client:
         self.reset()
         self.set_name_and_surname(content)
         self.set_address(content)
@@ -56,19 +55,19 @@ class BaseClientBuilder(ClientBuilder):
 class ClientWithAddressBuilder(BaseClientBuilder):
     """Client with name, surname and address"""
 
-    def set_address(self, content: List):
+    def set_address(self, content: list):
         self.content.append(content[2])
 
 
 class ClientWithPassportBuilder(BaseClientBuilder):
     """Client with name, surname and passport"""
 
-    def set_passport(self, content: List):
+    def set_passport(self, content: list):
         self.content.append(content[2])
 
 
 class FullClientBuilder(ClientWithAddressBuilder):
     """Client with name, surname, address and passport"""
 
-    def set_passport(self, content: List):
+    def set_passport(self, content: list):
         self.content.append(content[3])

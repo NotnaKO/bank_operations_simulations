@@ -1,4 +1,6 @@
 """Main module"""
-from .data_adapter import *
-from .project_data import *
-from .serializable_base_class import *
+
+import logging
+
+logging.basicConfig(level=logging.INFO, filename="py_log.log", filemode="a",
+                    encoding='utf-8', format="%(levelname)s %(message)s")

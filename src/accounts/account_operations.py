@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import List
 
 from .accounts import Account
 
@@ -30,7 +31,7 @@ class Put(Operation):
 
 @dataclass(init=False)
 class Operator:
-    operations: list[Operation]
+    operations: List[Operation]
     _account: Account | None
     _summa: float | None
 

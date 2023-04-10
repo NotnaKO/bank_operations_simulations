@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Type
+from typing import Type, List
 
 from src.accounts import Account
 from src.serializable_base_class import SerializableByMyEncoder
@@ -9,16 +9,16 @@ from .reliability import NotReliable, Reliable, ReliabilityType
 @dataclass(init=False)
 class Client(SerializableByMyEncoder):
     type: ReliabilityType
-    accounts: list[Account]
+    accounts: List[Account]
 
     def __init__(self, name: str, surname: str, address: str, passport: str,
-                 accounts: list[Account] | None = None):
+                 accounts: List[Account] | None = None):
         self._name = name
         self._surname = surname
         self._address = address
         self._passport = passport
         if accounts is None:
-            self._accounts: list[Account] = []
+            self._accounts: List[Account] = []
         else:
             self._accounts = accounts
 
@@ -45,7 +45,7 @@ class Client(SerializableByMyEncoder):
         return Reliable
 
     @property
-    def accounts(self) -> list[Account]:
+    def accounts(self) -> List[Account]:
         return self._accounts
 
     def get_data(self) -> dict:

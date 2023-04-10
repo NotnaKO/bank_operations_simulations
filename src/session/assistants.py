@@ -1,6 +1,7 @@
 import datetime
 from dataclasses import dataclass
 from logging import log, WARNING
+from typing import List
 
 from src.accounts import Operator, WrongSummaFormat, Bank, AccountCreator, \
     FixedCommission, PercentCommission, AccountCodes, DebitCreator, DepositCreator, CreditCreator, \
@@ -204,7 +205,7 @@ class AccountsAssistant(AssistantWithClient):
             except ValueError:
                 self.print("Your answer should be an integer or a float(in percent commission)")
 
-    def get_bank(self, banks: list[Bank]) -> Bank:
+    def get_bank(self, banks: List[Bank]) -> Bank:
         self.print("Choose the bank to your account:")
         for i in range(1, len(banks) + 1):
             self.print(f"{i}) {banks[i - 1]}")

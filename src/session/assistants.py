@@ -4,8 +4,8 @@ from logging import log, WARNING
 from typing import List
 
 from src.accounts import Operator, WrongSummaFormat, Bank, AccountCreator, \
-    FixedCommission, PercentCommission, AccountCodes, DebitCreator, DepositCreator, CreditCreator, \
-    Account, TransactionCodes
+    FixedCommission, PercentCommission, AccountCodes, DebitCreator, DepositCreator, \
+    CreditCreator, Account, TransactionCodes
 from src.checker import Checker
 from src.clients import BaseClientBuilder, FullClientBuilder, ClientWithAddressBuilder, \
     ClientWithPassportBuilder, Client
@@ -49,7 +49,7 @@ class IOAssistant:
 class AuthAssistant(IOAssistant):
     """Class helping with authentication"""
     _checker: Checker
-    _user_data: list | None = None
+    _user_data: List | None = None
     _with_passport: bool | None = None
 
     def __init__(self, io: IOImplementation, adapter: DataAdapter):

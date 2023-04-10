@@ -1,16 +1,23 @@
-class TransactionCodes:
+from abc import ABC
+
+
+class Codes(ABC):
+    """Class to provide codes for user in project"""
+
+
+class TransactionCodes(Codes):
     WITHDRAW = 1
     PUT = 2
     TRANSFER = 3
 
 
-class AccountCodes:
+class AccountCodes(Codes):
     DEBIT = 1
     DEPOSIT = 2
     CREDIT = 3
 
 
-class ActionsCodes:
+class ActionsCodes(Codes):
     SHOW_ACCOUNTS = 1
     CREATE_NEW_ACCOUNT = 2
     MAKE_TRANSACTION = 3

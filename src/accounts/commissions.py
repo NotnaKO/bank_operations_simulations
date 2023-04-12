@@ -2,22 +2,12 @@ from abc import abstractmethod
 from dataclasses import dataclass
 
 from src.serializable_base_class import SerializableByMyEncoder
-
-
-class WrongSummaFormat(Exception):
-    pass
-
-
-def convert(summa: float) -> int:
-    """convert float summa to int"""
-    if not (summa * 100).is_integer():
-        raise WrongSummaFormat
-    return int(summa * 100)
+from .money import Money
 
 
 class Commission(SerializableByMyEncoder):
     @abstractmethod
-    def apply(self, summa: float) -> float:
+    def apply(self, summa: Money) -> Money:
         """Applying commission"""
 
     @abstractmethod
@@ -33,10 +23,8 @@ class Commission(SerializableByMyEncoder):
 class PercentCommission(Commission):
     percent: float
 
-    def apply(self, summa: float) -> float:
-        summa = convert(summa)
-        summa *= self.percent
-        return round(summa / 100, 2)
+    def apply(self, summa: Money) -> Money:
+        return summa * self.percent
 
     def get_data(self):
         return {"type": "percent", "value": self.percent, "__Commission__": True}
@@ -47,11 +35,11 @@ class PercentCommission(Commission):
 
 @dataclass(init=False)
 class FixedCommission(Commission):
-    def __init__(self, commission: float):
-        self.commission: int = convert(commission)
+    def __init__(self, commission: Money):
+        self.commission: Money = commission
 
-    def apply(self, summa: float) -> float:
-        return convert(summa) - self.commission
+    def apply(self, summa: Money) -> float:
+        return summa - self.commission
 
     def get_data(self):
         return {"type": "fixed", "value": self.commission, "__Commission__": True}

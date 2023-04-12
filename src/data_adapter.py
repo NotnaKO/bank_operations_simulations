@@ -3,11 +3,12 @@
 import datetime
 import json
 from dataclasses import dataclass
-from logging import log, INFO
+from logging import INFO, log
 from pathlib import Path
 
-from src.accounts import Debit, Deposit, Credit, PercentCommission, FixedCommission, \
-    Bank
+from src.accounts import Account, Commission, Credit, Debit, Deposit, FixedCommission, \
+    PercentCommission
+from src.banks import Bank
 from src.clients import Client
 from src.project_data import ProjectData
 from src.serializable_base_class import SerializableByMyEncoder
@@ -28,7 +29,7 @@ class DataAlreadyLoaded(Exception):
 class Encoder(json.JSONEncoder):
     """Encoder to my objects"""
 
-    def default(self, o: Client):
+    def default(self, o):
         if isinstance(o, SerializableByMyEncoder):
             return o.get_data()
         if isinstance(o, datetime.date):
@@ -40,31 +41,40 @@ class Decoder(json.JSONDecoder):
     """Decoder to my objects"""
 
     @staticmethod
+    def choose_account(dictionary: dict) -> Account:
+        match dictionary["type"]:
+            case "Debit":
+                return Debit(dictionary["balance"], dictionary["end"], dictionary["bank_name"])
+            case "Deposit":
+                return Deposit(dictionary["balance"], dictionary["end"],
+                               dictionary["bank_name"])
+            case "Credit":
+                return Credit(dictionary["balance"], dictionary["end"],
+                              dictionary["commission"], dictionary["bank_name"])
+        raise RuntimeError
+
+    @staticmethod
+    def choose_commission(dictionary: dict) -> Commission:
+        match dictionary["type"]:
+            case "percent":
+                return PercentCommission(dictionary["value"])
+            case "fixed":
+                return FixedCommission(dictionary["value"])
+        raise RuntimeError
+
+    @staticmethod
     def loading_function(dictionary: dict):
         """function to load my function from json"""
         if "__Client__" in dictionary:
-            return Client(dictionary["name"], dictionary["surname"], dictionary["address"],
-                          dictionary["passport"], dictionary["accounts"])
+            return Client.from_data(dictionary)
         if "__date__" in dictionary:
             return datetime.datetime.strptime(dictionary["value"], "%d.%m.%Y")
         if "__Account__" in dictionary:
-            match dictionary["type"]:
-                case "Debit":
-                    return Debit(dictionary["balance"], dictionary["end"], dictionary["bank_name"])
-                case "Deposit":
-                    return Deposit(dictionary["balance"], dictionary["end"],
-                                   dictionary["bank_name"])
-                case "Credit":
-                    return Credit(dictionary["balance"], dictionary["end"],
-                                  dictionary["commission"], dictionary["bank_name"])
+            return Decoder.choose_account(dictionary)
         if "__Commission__" in dictionary:
-            match dictionary["type"]:
-                case "percent":
-                    return PercentCommission(dictionary["value"])
-                case "fixed":
-                    return FixedCommission(dictionary["value"])
+            return Decoder.choose_commission(dictionary)
         if "__Bank__" in dictionary:
-            return Bank(dictionary["name"])
+            return Bank(dictionary["name"], dictionary["bound"])
         return dictionary
 
     def __init__(self, *args, **kwargs):
@@ -79,9 +89,13 @@ class Singleton(type):
     def __call__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super(Singleton, cls).__call__(*args, **kwargs)
-        else:
+        elif isinstance(cls, DataAdapter):
             raise DataAlreadyLoaded
         return cls._instance
+
+
+class BankNotExists(Exception):
+    """Exception when bank does not exist"""
 
 
 @dataclass(init=False)
@@ -107,19 +121,27 @@ class DataAdapter(metaclass=Singleton):
         if exc_val:
             raise
 
-    def client_exists(self, name: str, surname: str) -> bool:
-        """Check if client exists"""
-        return f"{name} {surname}" in self._data["clients"]
+    def bank_exists(self, name: str) -> bool:
+        return name in self._data["banks"]
 
     def create_new_client(self, new_client: Client) -> None:
         """Create new client by name and surname"""
-        self._data["clients"][f"{new_client.name} {new_client.surname}"] = new_client
+        if new_client.name_and_surname in self._data["clients"]:
+            raise UserAlreadyExists
+        self._data["clients"][new_client.name_and_surname] = new_client
 
-    def get_client(self, name: str, surname: str) -> Client:
+    def get_client(self, name_and_surname: str) -> Client:
         """Get client data"""
-        if self.client_exists(name, surname):
-            return self._data["clients"][f"{name} {surname}"]
-        raise UserNotExists
+        try:
+            return self._data["clients"][name_and_surname]
+        except KeyError as exc:
+            raise UserNotExists from exc
 
     def get_banks(self):
         return self._data["banks"]
+
+    def get_bank(self, name: str) -> Bank:
+        """Get bank data"""
+        if self.bank_exists(name):
+            return self._data["bank"][name]
+        raise BankNotExists

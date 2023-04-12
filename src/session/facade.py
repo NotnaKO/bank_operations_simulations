@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from logging import log, INFO
+from logging import INFO, log
 
-from src.accounts import ActionsCodes
 from src.data_adapter import DataAdapter
-from .assistants import AuthAssistant, \
-    MainAssistant, AccountsAssistant, TransactionAssistant
+from .assistants import AccountsAssistant, AuthAssistant, LoginFail, MainAssistant, \
+    TransactionAssistant
+from .codes_to_answers import ActionsCodes
 from .io_implementation import IOImplementation, StandardConsoleIO
 
 
@@ -12,24 +12,23 @@ from .io_implementation import IOImplementation, StandardConsoleIO
 class SessionFacade:
     """Session moderator"""
 
-    def __init__(self, adapter: DataAdapter, io: IOImplementation = StandardConsoleIO()):
+    def __init__(self, adapter: DataAdapter,
+                 input_and_output: IOImplementation = StandardConsoleIO()):
         self._adapter: DataAdapter = adapter
-        self._auth_assistant: AuthAssistant = AuthAssistant(io, adapter)
-        self._main_assistant: MainAssistant = MainAssistant(io)
-        self._account_assistant: AccountsAssistant = AccountsAssistant(io)
-        self._transaction_assistant: TransactionAssistant = TransactionAssistant(io)
+        self._auth_assistant: AuthAssistant = AuthAssistant(input_and_output, adapter)
+        self._main_assistant: MainAssistant = MainAssistant(input_and_output)
+        self._account_assistant: AccountsAssistant = AccountsAssistant(input_and_output)
+        self._transaction_assistant: TransactionAssistant = TransactionAssistant(input_and_output,
+                                                                                 adapter)
 
     def sign_up_or_sign_in(self):
-        self._auth_assistant.print_choice()
-        answer = self._auth_assistant.input()
-        while answer not in ('1', '2'):
-            self._auth_assistant.print_try_again()
-            answer = self._auth_assistant.input()
-
-        if answer == '1':
-            self.sign_up()
-        elif answer == '2':
-            self.sign_in()
+        match self._auth_assistant.sign_in_or_sign_up():
+            case ActionsCodes.SIGN_UP:
+                self.sign_up()
+            case ActionsCodes.SIGN_IN:
+                self.sign_in()
+            case _:
+                raise RuntimeError
 
     def start_session(self):
         log(INFO, "Starting session")
@@ -42,15 +41,19 @@ class SessionFacade:
         log(INFO, "Sign up new client success")
         self.sign_in()
 
+    def set_client(self, name_and_surname: str):
+        self._account_assistant.client = self._transaction_assistant.client = \
+            self._main_assistant.client = self._adapter.get_client(name_and_surname)
+
     def sign_in(self):
         log(INFO, "Starting sign in")
-        answer = self._auth_assistant.login()
-        if answer is None:
+        try:
+            answer = self._auth_assistant.login()
+        except LoginFail:
             self.sign_up_or_sign_in()
         else:
             log(INFO, "Sign in success")
-            self._account_assistant.client = self._transaction_assistant.client \
-                = self._adapter.get_client(answer[0], answer[1])
+            self.set_client(answer)
             self.main()
 
     def main(self):
@@ -75,8 +78,6 @@ class SessionFacade:
                 case ActionsCodes.MAKE_TRANSACTION:
                     transaction_type, account, summa = self._transaction_assistant.print_choice()
                     self._transaction_assistant.choice_operation(transaction_type, account, summa)
-                    self._transaction_assistant.print_success()
-                    log(INFO, "Transaction succeeded")
                 case ActionsCodes.EXIT:
                     self._main_assistant.print_bye()
                     log(INFO, "End of the work with client")

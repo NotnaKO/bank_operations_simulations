@@ -1,16 +1,19 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from src.banks.banks import DeclinedOperation
 from src.serializable_base_class import SerializableByMyEncoder
-from .commissions import convert, Commission
+from .commissions import Commission
+from .money import Money
 
 
-class InsufficientFunds(Exception):
-    pass
+class InsufficientFunds(DeclinedOperation):
+    """Exception when insufficient funds in withdraw"""
 
 
-class WithdrawBeforeEnd(Exception):
-    pass
+class WithdrawBeforeEnd(DeclinedOperation):
+    """Exception when user trying to withdraw funds before the end of the deposit"""
 
 
 class Account(SerializableByMyEncoder):
@@ -23,13 +26,13 @@ class Account(SerializableByMyEncoder):
         self._bank_name = bank_name
 
     @property
-    def balance(self) -> float:
+    def balance(self) -> Money:
         """Get balance of the account"""
-        return self._balance / 100
+        return self._balance
 
     @balance.setter
     def balance(self, summa: float):
-        self._balance = convert(summa)
+        self._balance = Money(summa)
 
     @property
     def end(self) -> date:
@@ -43,10 +46,12 @@ class Account(SerializableByMyEncoder):
     def bank_name(self, val: str):
         self._bank_name = val
 
-    def withdraw(self, summa: float):
+    @abstractmethod
+    def withdraw(self, summa: Money):
         raise NotImplementedError
 
-    def put(self, summa: float):
+    @abstractmethod
+    def put(self, summa: Money):
         raise NotImplementedError
 
     def get_data(self) -> dict:
@@ -55,13 +60,15 @@ class Account(SerializableByMyEncoder):
 
 @dataclass(init=False)
 class Debit(Account):
-    def withdraw(self, summa: float):
+    def withdraw(self, summa: Money):
         if summa > self.balance:
-            raise InsufficientFunds
-        self.balance = round(self.balance - summa, 2)
+            raise InsufficientFunds(
+                f"""You have tried to withdraw too much.
+You have: {self.balance}. You ask for: {summa}""")
+        self.balance -= summa
 
-    def put(self, summa: float):
-        self.balance = round(self.balance + summa, 2)
+    def put(self, summa: Money):
+        self.balance += summa
 
     def get_data(self) -> dict:
         return {"type": "Debit", "balance": self.balance, "end": self.end, "__Account__": True,
@@ -74,15 +81,19 @@ class Debit(Account):
 
 @dataclass(init=False)
 class Deposit(Account):
-    def withdraw(self, summa: float):
+    def withdraw(self, summa: Money):
         if datetime.today() < self.end:
-            raise WithdrawBeforeEnd
+            raise WithdrawBeforeEnd(f"""You have tried to withdraw too early.
+End of this deposit is {self.end.strftime("%d.%m.%Y")}.
+Today: {datetime.today().strftime("%d.%m.%Y")}""")
         if summa > self.balance:
-            raise InsufficientFunds
-        self.balance = round(self.balance - summa, 2)
+            raise InsufficientFunds(
+                f"""You have tried to withdraw too much.
+You have: {self.balance}. You ask for: {summa}""")
+        self.balance -= summa
 
-    def put(self, summa: float):
-        self.balance = round(self.balance + summa, 2)
+    def put(self, summa: Money):
+        self.balance += summa
 
     def get_data(self) -> dict:
         return {"type": "Deposit", "balance": self.balance, "end": self.end, "__Account__": True,
@@ -103,13 +114,13 @@ class Credit(Account):
     def commission(self) -> Commission:
         return self._commission
 
-    def withdraw(self, summa: float):
+    def withdraw(self, summa: Money):
         if self.balance < 0:
             summa = self.commission.apply(summa)
-        self.balance = round(self.balance - summa, 2)
+        self.balance -= summa
 
-    def put(self, summa: float):
-        self.balance = round(self.balance + summa, 2)
+    def put(self, summa: Money):
+        self.balance += summa
 
     def get_data(self) -> dict:
         return {"type": "Credit", "balance": self.balance, "end": self.end,

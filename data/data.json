@@ -100,7 +100,7 @@
         },
         {
           "__Account__": true,
-          "balance": 3900.0,
+          "balance": 0.0,
           "bank_name": "VTB",
           "end": {
             "__date__": true,
@@ -120,7 +120,7 @@
         },
         {
           "__Account__": true,
-          "balance": 3000.0,
+          "balance": 6900.0,
           "bank_name": "Sberbank",
           "end": {
             "__date__": true,
@@ -144,10 +144,21 @@
     },
     "b c": {
       "__Client__": true,
-      "accounts": [],
-      "address": null,
+      "accounts": [
+        {
+          "__Account__": true,
+          "balance": 100000.0,
+          "bank_name": "Sberbank",
+          "end": {
+            "__date__": true,
+            "value": "20.05.2023"
+          },
+          "type": "Debit"
+        }
+      ],
+      "address": "asd",
       "name": "b",
-      "passport": null,
+      "passport": "pase",
       "surname": "c"
     }
   }

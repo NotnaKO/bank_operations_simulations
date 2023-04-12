@@ -59,3 +59,9 @@ class Client(SerializableByMyEncoder):
 
     def have_accounts(self) -> bool:
         return bool(self.accounts)
+
+    def complete(self, address: str, passport: str):
+        if address:
+            self._address = address
+        if passport:
+            self._passport = passport

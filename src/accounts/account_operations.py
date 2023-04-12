@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
 
-from src.banks.banks import DeclinedOperation
+from src.accounts.banks import DeclinedOperation
 from .accounts import Account
 from .money import Money
 

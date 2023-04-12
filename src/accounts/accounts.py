@@ -2,7 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from src.banks.banks import DeclinedOperation
+from src.accounts.banks import DeclinedOperation
 from src.serializable_base_class import SerializableByMyEncoder
 from .commissions import Commission
 from .money import Money

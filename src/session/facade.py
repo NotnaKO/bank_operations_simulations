@@ -82,3 +82,7 @@ class SessionFacade:
                     self._main_assistant.print_bye()
                     log(INFO, "End of the work with client")
                     return
+                case ActionsCodes.COMPLETE_INFORMATION:
+                    self._auth_assistant.complete_information(self._main_assistant.client)
+                case _:
+                    raise RuntimeError

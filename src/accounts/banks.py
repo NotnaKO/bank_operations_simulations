@@ -23,7 +23,9 @@ class Bank(SerializableByMyEncoder):
 
     def approve_withdraw(self, summa: Money):
         if summa > self._withdraw_bound:
-            raise DeclinedOperation
+            raise DeclinedOperation(f"""
+You have incomplete information. That's why you have a bound 
+{self._withdraw_bound} by this account.(You want to withdraw {summa}).""".lstrip())
 
     def __str__(self):
         return self.name

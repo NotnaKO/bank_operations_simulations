@@ -8,7 +8,7 @@ from pathlib import Path
 
 from src.accounts import Account, Commission, Credit, Debit, Deposit, FixedCommission, \
     PercentCommission
-from src.banks import Bank
+from src.accounts.banks import Bank
 from src.clients import Client
 from src.project_data import ProjectData
 from src.serializable_base_class import SerializableByMyEncoder
@@ -143,5 +143,5 @@ class DataAdapter(metaclass=Singleton):
     def get_bank(self, name: str) -> Bank:
         """Get bank data"""
         if self.bank_exists(name):
-            return self._data["bank"][name]
+            return self._data["banks"][name]
         raise BankNotExists

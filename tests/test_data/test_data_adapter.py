@@ -30,10 +30,9 @@ def create_base(create_tmp_dir):
 
 
 def test_data_safe(create_tmp_dir, create_base):
-    file_name = create_tmp_dir / "data.json"
     try:
-        with DataAdapter(file_name):
+        with DataAdapter():
             raise RuntimeError
     except RuntimeError:
-        with open(file_name) as file:
+        with open(create_tmp_dir / "data.json") as file:
             assert json.load(file) == create_base

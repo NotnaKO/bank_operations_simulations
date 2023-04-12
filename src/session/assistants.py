@@ -4,16 +4,15 @@ from logging import INFO, WARNING, log
 from textwrap import dedent
 from typing import Dict, List
 
-from src.accounts import Account, AccountCreator, CreditCreator, DebitCreator, \
+from src.accounts import Account, AccountCreator, Bank, CreditCreator, DebitCreator, \
     DeclinedOperation, DepositCreator, FixedCommission, Money, Operator, PercentCommission, \
     WrongSummaFormat
-from src.checker import Checker
+from src.checker import Checker, InvalidTransfer
 from src.clients import BaseClientBuilder, Client, ClientWithAddressBuilder, \
     ClientWithPassportBuilder, FullClientBuilder, NotReliable
 from src.data_adapter import DataAdapter, UserAlreadyExists, UserNotExists
 from .codes_to_answers import AccountCodes, ActionsCodes, TransactionCodes
 from .io_implementation import IOImplementation
-from ..banks import Bank
 
 
 @dataclass
@@ -81,10 +80,7 @@ class AuthAssistant(IOAssistant):
     def learn_about_user(self):
         self.print("Let's try to sign up:\nEnter your name and surname separated by a space:")
         name, surname = self.input().split()
-        self.print("Enter your address(optional, press Enter to continue without address)")
-        address = self.input()
-        self.print("Enter your passport(optional, press Enter to continue without passport)")
-        passport = self.input()
+        address, passport = self.complete_information()
         self._user_data = list(filter(lambda x: x, (name, surname, address, passport)))
         self._with_passport = bool(passport)
 
@@ -148,6 +144,15 @@ class AuthAssistant(IOAssistant):
         assert new_client is not None
         self.print("Sign up succeeded")
         return new_client
+
+    def complete_information(self, client: Client = None):
+        self.print("Enter your address(optional, press Enter to continue without address)")
+        address = self.input().strip()
+        self.print("Enter your passport(optional, press Enter to continue without passport)")
+        passport = self.input().strip()
+        if client is not None:
+            client.complete(address, passport)
+        return address, passport
 
 
 @dataclass(init=False)
@@ -340,14 +345,17 @@ class TransactionAssistant(AssistantWithClient):
         try:
             match transaction_type:
                 case TransactionCodes.WITHDRAW:
-                    self._checker.approve_withdraw(account.bank_name, summa)
+                    self._checker.approve_withdraw(self.client, account, summa)
                     self._operator.make_withdraw(account, summa)
                 case TransactionCodes.PUT:
                     self._operator.make_put(account, summa)
                 case TransactionCodes.TRANSFER:
                     second_account = self.account_choice()
+                    self._checker.approve_transfer(self.client, account, second_account, summa)
                     self._operator.make_transfer(account, second_account, summa)
         except DeclinedOperation as exception:
+            self.print_decline(exception.args[0])
+        except InvalidTransfer as exception:
             self.print_decline(exception.args[0])
         else:
             self.print_success()

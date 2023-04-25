@@ -1,21 +1,42 @@
-image: "python:3.11"
+image: python:latest
 
-before_script:
-  - python --version
-  - pip install -r requirements.txt
+.before_test_template:
+  before_script:
+    - echo "Preparing python for tests..."
+    - python setup.py
 
 stages:
-  - Static analysis
-  - Tests
+  - Code tests
+  - Image tests
 
 pylint:
-  stage: Static analysis
+  stage: Code tests
+  extends: .before_test_template
   script:
     - echo "Checking codestyle..."
     - python static_analyze
 
 pytest:
-  stage: Tests
+  stage: Code tests
+  extends: .before_test_template
   script:
-    - echo "Starting tests"
-    - python -m pytest /tests -rfs
+    - echo "Starting tests..."
+    - python -m pytest tests -rfs --cov=src
+
+
+test_image:
+  image: docker:20.10.24
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  services:
+    - docker:20.10.24-dind
+  stage: Image tests
+  script:
+    - docker info
+    - echo "Starting building image..."
+    - docker build -t my-image .
+    - echo "Starting test image..."
+    - docker run --name my-container -td my-image bash
+    - docker exec -w /home/user/project my-container  python -m pytest --cov src tests
+    - docker stop my-container

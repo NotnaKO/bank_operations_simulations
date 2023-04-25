@@ -1,18 +1,21 @@
 {
-  "banks": [
-    {
+  "banks": {
+    "Sberbank": {
       "__Bank__": true,
+      "bound": 3000.0,
+      "name": "Sberbank"
+    },
+    "Tinkoff": {
+      "__Bank__": true,
+      "bound": 1000.0,
       "name": "Tinkoff"
     },
-    {
+    "VTB": {
       "__Bank__": true,
+      "bound": 2000.0,
       "name": "VTB"
-    },
-    {
-      "__Bank__": true,
-      "name": "Sberbank"
     }
-  ],
+  },
   "clients": {
     "And qwerty": {
       "__Client__": true,
@@ -82,7 +85,7 @@
       "accounts": [
         {
           "__Account__": true,
-          "balance": 0.45,
+          "balance": 100.45,
           "bank_name": "Tinkoff",
           "commission": {
             "__Commission__": true,
@@ -97,7 +100,7 @@
         },
         {
           "__Account__": true,
-          "balance": 1900.0,
+          "balance": 0.0,
           "bank_name": "VTB",
           "end": {
             "__date__": true,
@@ -107,11 +110,21 @@
         },
         {
           "__Account__": true,
-          "balance": 100.0,
+          "balance": 0.0,
           "bank_name": "Tinkoff",
           "end": {
             "__date__": true,
             "value": "01.02.2003"
+          },
+          "type": "Deposit"
+        },
+        {
+          "__Account__": true,
+          "balance": 6900.0,
+          "bank_name": "Sberbank",
+          "end": {
+            "__date__": true,
+            "value": "12.04.2023"
           },
           "type": "Deposit"
         }
@@ -128,6 +141,25 @@
       "name": "b",
       "passport": "pas",
       "surname": "b"
+    },
+    "b c": {
+      "__Client__": true,
+      "accounts": [
+        {
+          "__Account__": true,
+          "balance": 100000.0,
+          "bank_name": "Sberbank",
+          "end": {
+            "__date__": true,
+            "value": "20.05.2023"
+          },
+          "type": "Debit"
+        }
+      ],
+      "address": "asd",
+      "name": "b",
+      "passport": "pase",
+      "surname": "c"
     }
   }
 }

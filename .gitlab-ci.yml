@@ -1,0 +1,21 @@
+image: "python:3.11"
+
+before_script:
+  - python --version
+  - pip install -r requirements.txt
+
+stages:
+  - Static analysis
+  - Tests
+
+pylint:
+  stage: Static analysis
+  script:
+    - echo "Checking codestyle..."
+    - python static_analyze/codestyle.py
+
+pytest:
+  stage: Tests
+  script:
+    - echo "Starting tests"
+    - python -m pytest tests -rfs

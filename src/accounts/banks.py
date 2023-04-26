@@ -36,7 +36,3 @@ You have incomplete information. That's why you have a bound
 
 class DeclinedOperation(Exception):
     """Exception when operation is declined"""
-
-
-class LimitExceeded(DeclinedOperation):
-    """Exception when limit was exceeded"""

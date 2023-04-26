@@ -1,0 +1,104 @@
+{
+  "banks": {
+    "Sberbank": {
+      "__Bank__": true,
+      "bound": 3000.0,
+      "name": "Sberbank"
+    },
+    "Tinkoff": {
+      "__Bank__": true,
+      "bound": 1000.0,
+      "name": "Tinkoff"
+    },
+    "VTB": {
+      "__Bank__": true,
+      "bound": 2000.0,
+      "name": "VTB"
+    }
+  },
+  "clients": {
+    "a a": {
+      "__Client__": true,
+      "accounts": [
+        {
+          "__Account__": true,
+          "balance": 500.0,
+          "bank_name": "VTB",
+          "end": {
+            "__date__": true,
+            "value": "04.05.2023"
+          },
+          "type": "Debit"
+        },
+        {
+          "__Account__": true,
+          "balance": 1100.0,
+          "bank_name": "Tinkoff",
+          "end": {
+            "__date__": true,
+            "value": "03.06.2022"
+          },
+          "type": "Deposit"
+        }
+      ],
+      "address": "ad",
+      "name": "a",
+      "passport": "pas",
+      "surname": "a"
+    },
+    "a b": {
+      "__Client__": true,
+      "accounts": [
+        {
+          "__Account__": true,
+          "balance": 100.45,
+          "bank_name": "Tinkoff",
+          "commission": {
+            "__Commission__": true,
+            "type": "percent",
+            "value": 5.0
+          },
+          "end": {
+            "__date__": true,
+            "value": "05.06.2024"
+          },
+          "type": "Credit"
+        },
+        {
+          "__Account__": true,
+          "balance": 3000.0,
+          "bank_name": "VTB",
+          "end": {
+            "__date__": true,
+            "value": "01.01.2024"
+          },
+          "type": "Debit"
+        },
+        {
+          "__Account__": true,
+          "balance": 0.0,
+          "bank_name": "Tinkoff",
+          "end": {
+            "__date__": true,
+            "value": "01.02.2003"
+          },
+          "type": "Deposit"
+        },
+        {
+          "__Account__": true,
+          "balance": 6900.0,
+          "bank_name": "Sberbank",
+          "end": {
+            "__date__": true,
+            "value": "12.04.2023"
+          },
+          "type": "Deposit"
+        }
+      ],
+      "address": null,
+      "name": "a",
+      "passport": null,
+      "surname": "b"
+    }
+  }
+}

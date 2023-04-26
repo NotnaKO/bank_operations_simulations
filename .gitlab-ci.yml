@@ -1,5 +1,15 @@
 image: python:latest
 
+code_navigation:
+  image: sourcegraph/lsif-go:v1
+  stage: navigation
+  allow_failure: true # recommended
+  script:
+    - lsif-go
+  artifacts:
+    reports:
+      lsif: dump.lsif
+
 .before_test_template:
   before_script:
     - echo "Preparing python for tests..."
@@ -8,6 +18,7 @@ image: python:latest
 stages:
   - Code tests
   - Image tests
+  - navigation
 
 pylint:
   stage: Code tests
@@ -22,6 +33,7 @@ pytest:
   script:
     - echo "Starting tests..."
     - python -m pytest tests -rfs --cov=src
+  coverage: /(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
 
 
 test_image:

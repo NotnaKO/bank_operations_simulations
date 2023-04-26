@@ -1,15 +1,5 @@
 image: python:latest
 
-code_navigation:
-  image: sourcegraph/lsif-go:v1
-  stage: navigation
-  allow_failure: true # recommended
-  script:
-    - lsif-go
-  artifacts:
-    reports:
-      lsif: dump.lsif
-
 .before_test_template:
   before_script:
     - echo "Preparing python for tests..."
@@ -18,7 +8,6 @@ code_navigation:
 stages:
   - Code tests
   - Image tests
-  - navigation
 
 pylint:
   stage: Code tests

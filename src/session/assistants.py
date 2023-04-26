@@ -266,7 +266,7 @@ class MainAssistant(AssistantWithClient):
     def print_choice(self) -> int:
         question, codes = self.configure_choice()
         self.print(question)
-        return codes[self.ask_code(len(codes) + 1) - 1]
+        return codes[self.ask_code(len(codes)) - 1]
 
     def configure_choice(self) -> tuple[str, list[int]]:
         """Configure user choice by type and accounts"""

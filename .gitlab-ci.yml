@@ -26,6 +26,9 @@ pytest:
 
 test_image:
   image: docker:20.10.24
+  only:
+    - main
+    - merge_requests
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""

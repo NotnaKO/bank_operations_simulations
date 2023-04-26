@@ -1,6 +1,8 @@
 import os
 import sys
 
+from static_analyze.consistence import check_consistence
+
 
 def check_requirements():
     ver = sys.version_info
@@ -22,4 +24,5 @@ def make_uml_function():
 if __name__ == '__main__':
     check_requirements()
     make_uml_function()
+    check_consistence()
     print("Setup completed!")

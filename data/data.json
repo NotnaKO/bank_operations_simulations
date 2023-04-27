@@ -56,7 +56,7 @@
       "accounts": [
         {
           "__Account__": true,
-          "balance": 500.0,
+          "balance": 499.0,
           "bank_name": "VTB",
           "end": {
             "__date__": true,

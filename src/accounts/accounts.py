@@ -16,6 +16,10 @@ class WithdrawBeforeEnd(DeclinedOperation):
     """Exception when user trying to withdraw funds before the end of the deposit"""
 
 
+class NegativeBegin(DeclinedOperation):
+    """Exception when begin balance is negative"""
+
+
 class Account(SerializableByMyEncoder):
     """Accounts base class"""
 
@@ -24,6 +28,9 @@ class Account(SerializableByMyEncoder):
         self.balance = begin_balance
         self._end = end
         self._bank_name = bank_name
+
+    def __eq__(self, other):
+        return self is other
 
     @property
     def balance(self) -> Money:
@@ -58,8 +65,13 @@ class Account(SerializableByMyEncoder):
         raise NotImplementedError
 
 
-@dataclass(init=False)
+@dataclass(init=False, eq=False)
 class Debit(Account):
+    def __init__(self, begin_balance: float, end, bank_name: str):
+        if begin_balance < 0:
+            raise NegativeBegin
+        super().__init__(begin_balance, end, bank_name)
+
     def withdraw(self, summa: Money):
         if summa > self.balance:
             raise InsufficientFunds(
@@ -79,8 +91,13 @@ You have: {self.balance}. You ask for: {summa}""")
             f" and end {self.end.strftime('%d.%m.%Y')}"
 
 
-@dataclass(init=False)
+@dataclass(init=False, eq=False)
 class Deposit(Account):
+    def __init__(self, begin_balance: float, end, bank_name: str):
+        if begin_balance < 0:
+            raise NegativeBegin
+        super().__init__(begin_balance, end, bank_name)
+
     def withdraw(self, summa: Money):
         if datetime.today() < self.end:
             raise WithdrawBeforeEnd(f"""You have tried to withdraw too early.
@@ -104,7 +121,7 @@ You have: {self.balance}. You ask for: {summa}""")
             f" and end {self.end.strftime('%d.%m.%Y')}"
 
 
-@dataclass(init=False)
+@dataclass(init=False, eq=False)
 class Credit(Account):
     def __init__(self, begin_balance: float, end: date, commission: Commission, bank_name: str):
         self._commission: Commission = commission

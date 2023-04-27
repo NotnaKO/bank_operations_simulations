@@ -5,7 +5,8 @@ from textwrap import dedent
 from typing import Dict, List
 
 from src.accounts import Account, AccountCreator, Bank, CreditCreator, DebitCreator, \
-    DeclinedOperation, DepositCreator, FixedCommission, Money, Operator, PercentCommission, \
+    DeclinedOperation, DepositCreator, FixedCommission, Money, NegativeBegin, Operator, \
+    PercentCommission, \
     WrongSummaFormat
 from src.checker import Checker, InvalidTransfer
 from src.clients import BaseClientBuilder, Client, ClientWithAddressBuilder, \
@@ -192,6 +193,22 @@ class AccountsAssistant(AssistantWithClient):
                 success = True
         return money
 
+    def create_new_account(self, banks):
+        account_type = self.choice_type_of_account()
+        account_creator = self.get_creator(account_type)
+        success = False
+        while not success:
+            try:
+                account = account_creator. \
+                    create_account(self.get_money(),
+                                   self.get_end_of_period(),
+                                   self.get_bank(banks).name)
+                self.add_new_account(account)
+            except NegativeBegin:
+                self.print_about_negative()
+            else:
+                success = True
+
     def get_end_of_period(self) -> datetime.date:
         success = False
         end = None
@@ -255,6 +272,9 @@ class AccountsAssistant(AssistantWithClient):
 
     def add_new_account(self, account: Account):
         self.client.add_account(account)
+
+    def print_about_negative(self):
+        self.print("You cannot begin with negative sum in debit and deposit")
 
 
 class ClientIsNotSet(Exception):

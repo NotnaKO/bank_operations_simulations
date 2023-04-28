@@ -15,7 +15,8 @@ sequence_to_create_tmp_client = ["1", "tmp tmp", '', '']
 sequence_to_create_complete_client = ["1", "tmp tmp", 'address', 'passport']
 sequence_to_log_in_with_tmp = ["2", "tmp tmp"]
 sequence_to_create_debit = ["1", "5000", "05.08.2024", "1"]
-sequence_to_create_credit = ['3', '1', '5', '5000', '01.01.2004', '3']
+sequence_to_create_credit_with_fixed = ['3', '1', '5', '5000', '01.01.2004', '3']
+sequence_to_create_credit_with_percent = ['3', '2', '5', '5000', '01.01.2004', '3']
 
 
 @pytest.fixture
@@ -48,7 +49,7 @@ class IOtest(IOImplementation):
         return self.questions[-1]
 
     def write(self, *args, **kwargs) -> None:
-        self.questions.append(str(' '.join(args)))
+        self.questions.append(str(' '.join(map(str, args))))
 
     def push_answer(self, answer: str):
         self.answers.append(answer)

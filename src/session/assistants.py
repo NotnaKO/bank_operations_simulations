@@ -75,9 +75,6 @@ class AuthAssistant(IOAssistant):
         code = self.ask_code(2)
         return codes[code - 1]
 
-    def print_try_again(self):
-        self.print("Error, please check your answer and try again.")
-
     def learn_about_user(self):
         self.print("Let's try to sign up:\nEnter your name and surname separated by a space:")
         name, surname = self.input().split()
@@ -193,11 +190,10 @@ class AccountsAssistant(AssistantWithClient):
                 success = True
         return money
 
-    def create_new_account(self, banks):
+    def create_new_account(self, banks) -> Account:
         account_type = self.choice_type_of_account()
         account_creator = self.get_creator(account_type)
-        success = False
-        while not success:
+        while True:
             try:
                 account = account_creator. \
                     create_account(self.get_money(),
@@ -207,7 +203,7 @@ class AccountsAssistant(AssistantWithClient):
             except NegativeBegin:
                 self.print_about_negative()
             else:
-                success = True
+                return account
 
     def get_end_of_period(self) -> datetime.date:
         success = False

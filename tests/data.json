@@ -39,6 +39,21 @@
             "value": "03.06.2022"
           },
           "type": "Deposit"
+        },
+        {
+          "__Account__": true,
+          "balance": 100.45,
+          "bank_name": "Tinkoff",
+          "commission": {
+            "__Commission__": true,
+            "type": "fixed",
+            "value": 15.0
+          },
+          "end": {
+            "__date__": true,
+            "value": "05.06.2024"
+          },
+          "type": "Credit"
         }
       ],
       "address": "ad",

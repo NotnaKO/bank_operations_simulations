@@ -29,8 +29,6 @@ class Account(SerializableByMyEncoder):
         self._end = end
         self._bank_name = bank_name
 
-    def __eq__(self, other):
-        return self is other
 
     @property
     def balance(self) -> Money:
@@ -65,7 +63,7 @@ class Account(SerializableByMyEncoder):
         raise NotImplementedError
 
 
-@dataclass(init=False, eq=False)
+@dataclass(init=False)
 class Debit(Account):
     def __init__(self, begin_balance: float, end, bank_name: str):
         if begin_balance < 0:
@@ -91,7 +89,7 @@ You have: {self.balance}. You ask for: {summa}""")
             f" and end {self.end.strftime('%d.%m.%Y')}"
 
 
-@dataclass(init=False, eq=False)
+@dataclass(init=False)
 class Deposit(Account):
     def __init__(self, begin_balance: float, end, bank_name: str):
         if begin_balance < 0:
@@ -121,7 +119,7 @@ You have: {self.balance}. You ask for: {summa}""")
             f" and end {self.end.strftime('%d.%m.%Y')}"
 
 
-@dataclass(init=False, eq=False)
+@dataclass(init=False)
 class Credit(Account):
     def __init__(self, begin_balance: float, end: date, commission: Commission, bank_name: str):
         self._commission: Commission = commission

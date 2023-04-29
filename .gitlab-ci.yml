@@ -1,21 +1,79 @@
-image: "python:3.11"
+image: python:latest
 
-before_script:
-  - python --version
-  - pip install -r requirements.txt
+.before_test_template:
+  before_script:
+    - echo "Preparing python for tests..."
+    - python setup.py
 
 stages:
-  - Static analysis
-  - Tests
+  - Code tests
+  - Development image tests
+  - Production image build tests
 
 pylint:
-  stage: Static analysis
+  stage: Code tests
+  extends: .before_test_template
+  tags:
+    - common
   script:
     - echo "Checking codestyle..."
-    - python static_analyze/codestyle.py
+    - python static_analyze
 
 pytest:
-  stage: Tests
+  stage: Code tests
+  extends: .before_test_template
+  tags:
+    - common
   script:
-    - echo "Starting tests"
-    - python -m pytest tests -rfs
+    - echo "Starting tests..."
+    - python -m pytest tests -rfs --cov=src --junitxml=rspec.xml
+  coverage: /(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
+  artifacts:
+    when: always
+    paths:
+      - rspec.xml
+    reports:
+      junit: rspec.xml
+
+test_image:
+  image: docker:20.10.24
+  only:
+    - main
+    - merge_requests
+  tags:
+    - dind
+  needs:
+    - pytest
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  services:
+    - docker:20.10.24-dind
+  stage: Development image tests
+  script:
+    - docker info
+    - echo "Starting building image..."
+    - docker build --target development -t my-image .
+    - echo "Starting test image..."
+    - docker run --name my-container -td my-image bash
+    - docker exec -w /home/user/project my-container  python -m pytest --cov src tests
+    - docker stop my-container
+
+build_production_image:
+  image: docker:20.10.24
+  only:
+    - main
+    - merge_requests
+  tags:
+    - dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  services:
+    - docker:20.10.24-dind
+  stage: Production image build tests
+  script:
+    - docker info
+    - echo "Starting building image..."
+    - docker build --target production -t my-image .
+    - echo "Complete building production image"

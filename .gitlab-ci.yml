@@ -7,11 +7,14 @@ image: python:latest
 
 stages:
   - Code tests
-  - Image tests
+  - Development image tests
+  - Production image build tests
 
 pylint:
   stage: Code tests
   extends: .before_test_template
+  tags:
+    - common
   script:
     - echo "Checking codestyle..."
     - python static_analyze
@@ -19,6 +22,8 @@ pylint:
 pytest:
   stage: Code tests
   extends: .before_test_template
+  tags:
+    - common
   script:
     - echo "Starting tests..."
     - python -m pytest tests -rfs --cov=src
@@ -27,20 +32,44 @@ pytest:
 
 test_image:
   image: docker:20.10.24
-  only:
-    - main
-    - merge_requests
+  #only:
+  #  - main
+  #  - merge_requests
+  tags:
+    - dind
+  needs:
+    - pytest
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   services:
     - docker:20.10.24-dind
-  stage: Image tests
+  stage: Development image tests
+  script:
+    - docker info
+    - echo "Starting building image..."
+    - docker build --target development -t my-image .
+    - echo "Starting test image..."
+    - docker run --name my-container -td my-image bash
+    - docker exec -w /home/user/project my-container  python -m pytest --cov src tests
+    - docker stop my-container
+
+build_production_image:
+  image: docker:20.10.24
+  #only:
+  #  - main
+  #  - merge_requests
+  tags:
+    - dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  services:
+    - docker:20.10.24-dind
+  stage: Production image build tests
   script:
     - docker info
     - echo "Starting building image..."
     - docker build -t my-image .
     - echo "Starting test image..."
-    - docker run --name my-container -td my-image bash
-    - docker exec -w /home/user/project my-container  python -m pytest --cov src tests
-    - docker stop my-container
+    - docker run --name my-container my-image bash

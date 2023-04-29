@@ -1,4 +1,4 @@
-FROM python:latest as develpopment
+FROM python:latest as development
 LABEL authors="Kopanov Anton"
 
 RUN adduser user --disabled-password
@@ -18,10 +18,10 @@ WORKDIR ../
 RUN echo "Development image complete"
 
 FROM python:latest as production
-COPY --from=develpopment home/user/project/src /src
-COPY --from=develpopment home/user/project/data /data
-COPY --from=develpopment home/user/project/setup.py setup.py
-COPY --from=develpopment home/user/project/requirements.txt requirements.txt
+COPY --from=development home/user/project/src /src
+COPY --from=development home/user/project/data /data
+COPY --from=development home/user/project/setup.py setup.py
+COPY --from=development home/user/project/requirements.txt requirements.txt
 RUN python setup.py --production
 RUN rm -f setup.py
 RUN rm -f requirements.txt

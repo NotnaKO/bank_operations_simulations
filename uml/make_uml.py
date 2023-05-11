@@ -4,10 +4,6 @@ import pathlib
 from pylint import run_pyreverse
 
 
-class SpacesInPathWithPyreverse(Exception):
-    pass
-
-
 def make_uml():
     print("Starting creating UML file")
     path = pathlib.Path(__file__).parent.resolve()

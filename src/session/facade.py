@@ -66,15 +66,8 @@ class SessionFacade:
                     self._account_assistant.show_accounts()
                 case ActionsCodes.CREATE_NEW_ACCOUNT:
                     log(INFO, "Creating new account")
-                    account_type = self._account_assistant.choice_type_of_account()
-                    account_creator = self._account_assistant.get_creator(account_type)
-                    account = account_creator. \
-                        create_account(self._account_assistant.get_money(),
-                                       self._account_assistant.get_end_of_period(),
-                                       self._account_assistant.get_bank(
-                                           self._adapter.get_banks()).name)
+                    account = self._account_assistant.create_new_account(self._adapter.get_banks())
                     log(INFO, f"Created {account}")
-                    self._account_assistant.add_new_account(account)
                 case ActionsCodes.MAKE_TRANSACTION:
                     transaction_type, account, summa = self._transaction_assistant.print_choice()
                     self._transaction_assistant.choice_operation(transaction_type, account, summa)

@@ -30,5 +30,5 @@ class Checker(metaclass=Singleton):
     def approve_transfer(self, client: Client, account: Account, second_account: Account,
                          summa: Money):
         self.approve_withdraw(client, account, summa)
-        if account == second_account:
+        if account is second_account:
             raise InvalidTransfer("You want to transfer money to the same account")

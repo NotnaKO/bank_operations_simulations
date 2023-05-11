@@ -37,7 +37,7 @@ class BaseClientBuilder(ClientBuilder):
         self.content = []
 
     def set_name_and_surname(self, content: List[str]):
-        self.content.append(content[0] + content[1])
+        self.content.append(content[0] + " " + content[1])
 
     def set_address(self, content: List):
         self.content.append(None)

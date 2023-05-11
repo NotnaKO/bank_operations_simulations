@@ -5,7 +5,8 @@ from textwrap import dedent
 from typing import Dict, List
 
 from src.accounts import Account, AccountCreator, Bank, CreditCreator, DebitCreator, \
-    DeclinedOperation, DepositCreator, FixedCommission, Money, Operator, PercentCommission, \
+    DeclinedOperation, DepositCreator, FixedCommission, Money, NegativeBegin, Operator, \
+    PercentCommission, \
     WrongSummaFormat
 from src.checker import Checker, InvalidTransfer
 from src.clients import BaseClientBuilder, Client, ClientWithAddressBuilder, \
@@ -73,9 +74,6 @@ class AuthAssistant(IOAssistant):
         codes = [ActionsCodes.SIGN_UP, ActionsCodes.SIGN_IN]
         code = self.ask_code(2)
         return codes[code - 1]
-
-    def print_try_again(self):
-        self.print("Error, please check your answer and try again.")
 
     def learn_about_user(self):
         self.print("Let's try to sign up:\nEnter your name and surname separated by a space:")
@@ -192,6 +190,21 @@ class AccountsAssistant(AssistantWithClient):
                 success = True
         return money
 
+    def create_new_account(self, banks) -> Account:
+        account_type = self.choice_type_of_account()
+        account_creator = self.get_creator(account_type)
+        while True:
+            try:
+                account = account_creator. \
+                    create_account(self.get_money(),
+                                   self.get_end_of_period(),
+                                   self.get_bank(banks).name)
+                self.add_new_account(account)
+            except NegativeBegin:
+                self.print_about_negative()
+            else:
+                return account
+
     def get_end_of_period(self) -> datetime.date:
         success = False
         end = None
@@ -256,6 +269,9 @@ class AccountsAssistant(AssistantWithClient):
     def add_new_account(self, account: Account):
         self.client.add_account(account)
 
+    def print_about_negative(self):
+        self.print("You cannot begin with negative sum in debit and deposit")
+
 
 class ClientIsNotSet(Exception):
     pass
@@ -266,7 +282,7 @@ class MainAssistant(AssistantWithClient):
     def print_choice(self) -> int:
         question, codes = self.configure_choice()
         self.print(question)
-        return codes[self.ask_code(len(codes) + 1) - 1]
+        return codes[self.ask_code(len(codes)) - 1]
 
     def configure_choice(self) -> tuple[str, list[int]]:
         """Configure user choice by type and accounts"""

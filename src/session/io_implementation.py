@@ -16,7 +16,7 @@ class OutputImplementation(ABC):
 
 
 @dataclass
-class IOImplementation:
+class IOImplementation(ABC):
     _in: InputImplementation
     _out: OutputImplementation
 

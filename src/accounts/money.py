@@ -26,7 +26,7 @@ class Money(SerializableByMyEncoder):
     @staticmethod
     def convert(summa: float) -> int:
         """convert float summa to int"""
-        if not (summa * 100).is_integer():
+        if not isinstance(summa, int) and not (summa * 100).is_integer():
             raise WrongSummaFormat
         return int(summa * 100)
 

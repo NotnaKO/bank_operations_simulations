@@ -7,8 +7,7 @@ image: python:latest
 
 stages:
   - Code tests
-  - Development image tests
-  - Production image build tests
+  - Image tests
 
 pylint:
   stage: Code tests
@@ -26,25 +25,25 @@ pytest:
     - common
   script:
     - echo "Starting tests..."
-    - python -m pytest tests -rfs --cov=src
+    - python -m pytest tests -rfs --cov=src --junitxml=rspec.xml
   coverage: /(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
-
+  artifacts:
+    when: always
+    paths:
+      - rspec.xml
+    reports:
+      junit: rspec.xml
 
 test_image:
   image: docker:20.10.24
-  #only:
-  #  - main
-  #  - merge_requests
   tags:
     - dind
-  needs:
-    - pytest
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   services:
     - docker:20.10.24-dind
-  stage: Development image tests
+  stage: Image tests
   script:
     - docker info
     - echo "Starting building image..."
@@ -56,9 +55,6 @@ test_image:
 
 build_production_image:
   image: docker:20.10.24
-  #only:
-  #  - main
-  #  - merge_requests
   tags:
     - dind
   variables:
@@ -66,10 +62,9 @@ build_production_image:
     DOCKER_TLS_CERTDIR: ""
   services:
     - docker:20.10.24-dind
-  stage: Production image build tests
+  stage: Image tests
   script:
     - docker info
     - echo "Starting building image..."
-    - docker build -t my-image .
-    - echo "Starting test image..."
-    - docker run --name my-container my-image bash
+    - docker build --target production -t my-image .
+    - echo "Complete building production image"
